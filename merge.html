@@ -48,7 +48,7 @@
     font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   main {
-    max-width: 1080px;
+    max-width: 1160px;
     margin: 0 auto;
     padding: 28px 20px 60px;
     display: flex;
@@ -158,10 +158,11 @@
 
   <header>
     <h1>DK salaries × Savant stats</h1>
-    <p>Upload the DKSalaries CSV plus the detail CSVs downloaded from the Savant links
-       page. Players are matched by name, split into batters and pitchers, and each
-       group becomes one table: salary and FPPG next to aggregated Statcast numbers
-       (events, exit velocity, launch angle, distance).</p>
+    <p>Upload the DKSalaries CSV plus CSVs downloaded from Baseball Savant searches.
+       Players are matched by name, split into batters and pitchers, and each group
+       becomes one table: salary and FPPG next to the Savant numbers. Both Savant CSV
+       shapes work — pitch-level detail files are aggregated per player, and grouped
+       stat files (group by player) are used as-is with their own columns.</p>
   </header>
 
   <section>
@@ -176,14 +177,15 @@
       </div>
       <div class="upload-card">
         <h3>Savant — batters</h3>
-        <p class="hint">Detail CSV(s) from a batter search. Multiple files add together.</p>
+        <p class="hint">CSV(s) from a batter search — detail or grouped-stats format.</p>
         <label class="primary-btn" for="bat-file">Upload CSV(s)</label>
         <input type="file" id="bat-file" accept=".csv,.txt" multiple hidden>
         <span class="file-status" id="bat-status">Nothing uploaded.</span>
       </div>
       <div class="upload-card">
         <h3>Savant — pitchers</h3>
-        <p class="hint">Detail CSV(s) from a pitcher search. Multiple files add together.</p>
+        <p class="hint">CSV(s) from a pitcher search — e.g. the grouped stats table
+          (pitches, K%, whiffs, velo, EV, hard-hit%, barrels/PA%).</p>
         <label class="primary-btn" for="pit-file">Upload CSV(s)</label>
         <input type="file" id="pit-file" accept=".csv,.txt" multiple hidden>
         <span class="file-status" id="pit-status">Nothing uploaded.</span>
@@ -205,20 +207,7 @@
     </div>
     <div class="table-wrap">
       <table id="pool-table" hidden>
-        <thead><tr>
-          <th data-key="name">Name</th>
-          <th data-key="pos">Pos</th>
-          <th data-key="salary" class="num">Salary</th>
-          <th data-key="team">Team</th>
-          <th data-key="game">Game</th>
-          <th data-key="fppg" class="num">FPPG</th>
-          <th data-key="events" class="num">Events</th>
-          <th data-key="avgEv" class="num">Avg EV</th>
-          <th data-key="maxEv" class="num">Max EV</th>
-          <th data-key="avgLa" class="num">Avg LA</th>
-          <th data-key="avgDist" class="num">Avg Dist</th>
-          <th data-key="maxDist" class="num">Max Dist</th>
-        </tr></thead>
+        <thead><tr id="pool-head"></tr></thead>
         <tbody id="pool-body"></tbody>
       </table>
     </div>
@@ -288,36 +277,132 @@
 
   const isPitcher = (p) => p.pos.split("/").some(x => ["P", "SP", "RP"].includes(x));
 
-  // ---------- Savant detail CSVs ----------
-  const savant = { bat: new Map(), pit: new Map() };
+  // ---------- Savant CSVs ----------
+  // Each slot holds {mode: "detail"|"agg", cols: [{key,label}], map: nameKey → stats}.
+  const savant = { bat: null, pit: null };
 
-  function parseSavant(text, kind) {
+  const DETAIL_COLS = [
+    { key: "events", label: "Events" },
+    { key: "avgEv", label: "Avg EV" },
+    { key: "maxEv", label: "Max EV" },
+    { key: "avgLa", label: "Avg LA" },
+    { key: "avgDist", label: "Avg Dist" },
+    { key: "maxDist", label: "Max Dist" },
+  ];
+
+  const PRETTY = {
+    pitches: "Pitches", total_pitches: "Pitches", pitch_percent: "Pitch%",
+    hits: "H", hrs: "HR", so: "SO", k_percent: "K%", bb_percent: "BB%",
+    whiffs: "Whiffs", swings: "Swings", velocity: "Velo", spin_rate: "Spin",
+    launch_speed: "EV", launch_angle: "LA", bbdist: "Dist",
+    hardhit_percent: "HardHit%", barrels_per_pa_percent: "Brls/PA%",
+    barrels_per_bbe_percent: "Brls/BBE%", takes: "Takes",
+    ba: "BA", iso: "ISO", babip: "BABIP", slg: "SLG", woba: "wOBA",
+    xwoba: "xwOBA", xba: "xBA", pa: "PA", abs: "AB", bip: "BIP",
+  };
+  const NON_STAT = new Set(["player_id", "id", "team_id", "year", "season", "rank", "team", "team_name"]);
+
+  function prettyLabel(h) {
+    const slug = h.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    if (PRETTY[slug]) return PRETTY[slug];
+    return /^[a-z0-9_]+$/.test(h) ? h.replace(/_/g, " ") : h;
+  }
+
+  const numVal = (v) => {
+    const n = parseFloat(String(v).replace(/[%,$]/g, ""));
+    return Number.isNaN(n) ? null : n;
+  };
+
+  function parseSavant(text, store, kind) {
     const rows = csvRows(text);
-    const hIdx = rows.findIndex(r => r.map(c => c.trim().toLowerCase()).includes("player_name"));
-    if (hIdx < 0) throw new Error("No player_name column — expected a Savant statcast_search CSV.");
+    const hIdx = rows.findIndex(r => {
+      const low = r.map(c => c.trim().toLowerCase());
+      return low.includes("player_name") || low.includes("player name") || low.includes("player");
+    });
+    if (hIdx < 0) throw new Error("No player name column — expected a Savant search CSV.");
     const head = rows[hIdx].map(h => h.trim().toLowerCase());
+    const headRaw = rows[hIdx].map(h => h.trim());
     const col = (n) => head.indexOf(n);
-    // Prefer an explicit batter/pitcher name column when Savant provides one.
-    const iName = (kind === "bat" && col("batter_name") >= 0) ? col("batter_name")
-                : (kind === "pit" && col("pitcher_name") >= 0) ? col("pitcher_name")
-                : col("player_name");
-    const iEv = col("launch_speed"), iLa = col("launch_angle"), iDist = col("hit_distance_sc");
-    const map = savant[kind];
+    const mode = (col("pitch_type") >= 0 || col("game_date") >= 0) ? "detail" : "agg";
+    if (store.mode && store.mode !== mode)
+      throw new Error("Mixed detail and grouped-stats files in one slot — upload one format at a time.");
+    const data = rows.slice(hIdx + 1);
+
+    if (mode === "detail") {
+      // Prefer an explicit batter/pitcher name column when Savant provides one.
+      const iName = (kind === "bat" && col("batter_name") >= 0) ? col("batter_name")
+                  : (kind === "pit" && col("pitcher_name") >= 0) ? col("pitcher_name")
+                  : (col("player_name") >= 0 ? col("player_name") : col("player name"));
+      const iEv = col("launch_speed"), iLa = col("launch_angle"), iDist = col("hit_distance_sc");
+      store.mode = "detail";
+      store.cols = DETAIL_COLS;
+      store.raw = store.raw || new Map();
+      let used = 0;
+      for (const r of data) {
+        const name = (r[iName] || "").trim();
+        if (!name) continue;
+        used++;
+        const key = normName(name);
+        let s = store.raw.get(key);
+        if (!s) { s = { events: 0, sumEv: 0, nEv: 0, maxEv: null, sumLa: 0, nLa: 0, sumDist: 0, nDist: 0, maxDist: null }; store.raw.set(key, s); }
+        s.events++;
+        const ev = iEv >= 0 ? numVal(r[iEv]) : null;
+        if (ev != null) { s.sumEv += ev; s.nEv++; s.maxEv = s.maxEv == null ? ev : Math.max(s.maxEv, ev); }
+        const la = iLa >= 0 ? numVal(r[iLa]) : null;
+        if (la != null) { s.sumLa += la; s.nLa++; }
+        const di = iDist >= 0 ? numVal(r[iDist]) : null;
+        if (di != null) { s.sumDist += di; s.nDist++; s.maxDist = s.maxDist == null ? di : Math.max(s.maxDist, di); }
+      }
+      // Derive display stats from accumulators.
+      store.map = new Map();
+      for (const [k, s] of store.raw) {
+        store.map.set(k, {
+          events: s.events,
+          avgEv: s.nEv ? s.sumEv / s.nEv : null,
+          maxEv: s.maxEv,
+          avgLa: s.nLa ? s.sumLa / s.nLa : null,
+          avgDist: s.nDist ? s.sumDist / s.nDist : null,
+          maxDist: s.maxDist,
+        });
+      }
+      if (!used) throw new Error("Savant file parsed but no data rows found.");
+      return used;
+    }
+
+    // Grouped stats (group_by = player): one row per player; keep every numeric column.
+    const iName = col("player_name") >= 0 ? col("player_name")
+                : col("player name") >= 0 ? col("player name") : col("player");
+    const candidates = [];
+    for (let i = 0; i < head.length; i++) {
+      if (i === iName || NON_STAT.has(head[i].replace(/[^a-z0-9]+/g, "_"))) continue;
+      let filled = 0, numeric = 0;
+      for (const r of data) {
+        const v = (r[i] || "").trim();
+        if (!v) continue;
+        filled++;
+        if (numVal(v) != null) numeric++;
+      }
+      if (filled && numeric / filled >= 0.5) {
+        const label = prettyLabel(headRaw[i]);
+        // Savant repeats some columns under two names (pitches / total_pitches).
+        if (candidates.some(c => c.label === label)) continue;
+        let key = head[i].replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "col" + i;
+        while (candidates.some(c => c.key === key)) key += "_";
+        candidates.push({ key, label, idx: i });
+      }
+    }
+    if (!candidates.length) throw new Error("No numeric stat columns found in the grouped file.");
+    store.mode = "agg";
+    if (!store.cols) store.cols = candidates.map(c => ({ key: c.key, label: c.label }));
+    store.map = store.map || new Map();
     let used = 0;
-    for (const r of rows.slice(hIdx + 1)) {
+    for (const r of data) {
       const name = (r[iName] || "").trim();
       if (!name) continue;
       used++;
-      const key = normName(name);
-      let s = map.get(key);
-      if (!s) { s = { events: 0, sumEv: 0, nEv: 0, maxEv: null, sumLa: 0, nLa: 0, sumDist: 0, nDist: 0, maxDist: null }; map.set(key, s); }
-      s.events++;
-      const ev = iEv >= 0 ? parseFloat(r[iEv]) : NaN;
-      if (!Number.isNaN(ev)) { s.sumEv += ev; s.nEv++; s.maxEv = s.maxEv == null ? ev : Math.max(s.maxEv, ev); }
-      const la = iLa >= 0 ? parseFloat(r[iLa]) : NaN;
-      if (!Number.isNaN(la)) { s.sumLa += la; s.nLa++; }
-      const di = iDist >= 0 ? parseFloat(r[iDist]) : NaN;
-      if (!Number.isNaN(di)) { s.sumDist += di; s.nDist++; s.maxDist = s.maxDist == null ? di : Math.max(s.maxDist, di); }
+      const obj = store.map.get(normName(name)) || {};
+      for (const c of candidates) obj[c.key] = numVal(r[c.idx]);
+      store.map.set(normName(name), obj);
     }
     if (!used) throw new Error("Savant file parsed but no data rows found.");
     return used;
@@ -327,76 +412,96 @@
   let tab = "bat";
   let sortKey = "salary", sortDir = -1;
 
+  const DK_COLS = [
+    { key: "name", label: "Name", num: false },
+    { key: "pos", label: "Pos", num: false },
+    { key: "salary", label: "Salary", num: true },
+    { key: "team", label: "Team", num: false },
+    { key: "game", label: "Game", num: false },
+    { key: "fppg", label: "FPPG", num: true },
+  ];
+
   function mergedRows() {
-    const map = savant[tab];
+    const store = savant[tab];
     return dk
       .filter(p => (tab === "pit") === isPitcher(p))
       .map(p => {
-        const s = map.get(p.key);
-        return {
-          ...p,
-          events: s ? s.events : null,
-          avgEv: s && s.nEv ? s.sumEv / s.nEv : null,
-          maxEv: s ? s.maxEv : null,
-          avgLa: s && s.nLa ? s.sumLa / s.nLa : null,
-          avgDist: s && s.nDist ? s.sumDist / s.nDist : null,
-          maxDist: s ? s.maxDist : null,
-        };
+        const s = store && store.map.get(p.key);
+        const stats = {};
+        if (store) for (const c of store.cols) stats[c.key] = s ? (s[c.key] ?? null) : null;
+        return { ...p, stats, matched: !!s };
       });
   }
 
   function shown() {
     const q = $("search").value.trim().toLowerCase();
     let rows = mergedRows();
-    if ($("only-matched").checked) rows = rows.filter(r => r.events != null);
+    if ($("only-matched").checked) rows = rows.filter(r => r.matched);
     if (q) rows = rows.filter(r => (r.name + " " + r.team).toLowerCase().includes(q));
     const dir = sortDir, key = sortKey;
+    const get = (r) => key.startsWith("s:") ? r.stats[key.slice(2)] : r[key];
     return rows.sort((a, b) => {
-      const av = a[key], bv = b[key];
+      const av = get(a), bv = get(b);
       if (typeof av === "number" || typeof bv === "number" || av == null || bv == null)
-        return dir * (((av ?? -Infinity)) - ((bv ?? -Infinity)));
+        return dir * ((av ?? -Infinity) - (bv ?? -Infinity));
       return dir * String(av).localeCompare(String(bv));
     });
   }
 
   const fmtSalary = new Intl.NumberFormat("en-US");
-  const f1 = (v) => v == null ? "—" : v.toFixed(1);
-  const f0 = (v) => v == null ? "—" : String(Math.round(v));
+  const fmtStat = (v) => v == null ? "—" : (Number.isInteger(v) ? String(v) : v.toFixed(1));
 
   function render() {
     if (!dk.length) return;
+    const store = savant[tab];
+    const statCols = store ? store.cols : [];
+    if (sortKey.startsWith("s:") && !statCols.some(c => "s:" + c.key === sortKey)) {
+      sortKey = "salary"; sortDir = -1;
+    }
+
+    const headTr = $("pool-head");
+    headTr.innerHTML = "";
+    for (const c of DK_COLS) {
+      const th = document.createElement("th");
+      th.dataset.key = c.key;
+      if (c.num) th.className = "num";
+      th.textContent = c.label;
+      headTr.appendChild(th);
+    }
+    for (const c of statCols) {
+      const th = document.createElement("th");
+      th.dataset.key = "s:" + c.key;
+      th.className = "num";
+      th.textContent = c.label;
+      headTr.appendChild(th);
+    }
+    for (const th of headTr.children) {
+      if (th.dataset.key === sortKey)
+        th.innerHTML = th.textContent + " <span class='arrow'>" + (sortDir === 1 ? "▲" : "▼") + "</span>";
+    }
+
     const rows = shown();
     const total = mergedRows();
-    const matched = total.filter(r => r.events != null).length;
+    const matched = total.filter(r => r.matched).length;
     const body = $("pool-body");
     body.innerHTML = "";
     for (const r of rows) {
       const tr = document.createElement("tr");
-      tr.innerHTML =
+      let html =
         "<td>" + r.name + "</td>" +
         "<td>" + r.pos + "</td>" +
         "<td class='num'>$" + fmtSalary.format(r.salary) + "</td>" +
         "<td>" + r.team + "</td>" +
         "<td class='muted'>" + r.game + "</td>" +
-        "<td class='num'>" + (r.fppg == null ? "—" : r.fppg.toFixed(2)) + "</td>" +
-        "<td class='num'>" + (r.events == null ? "—" : r.events) + "</td>" +
-        "<td class='num'>" + f1(r.avgEv) + "</td>" +
-        "<td class='num'>" + f1(r.maxEv) + "</td>" +
-        "<td class='num'>" + f1(r.avgLa) + "</td>" +
-        "<td class='num'>" + f0(r.avgDist) + "</td>" +
-        "<td class='num'>" + f0(r.maxDist) + "</td>";
+        "<td class='num'>" + (r.fppg == null ? "—" : r.fppg.toFixed(2)) + "</td>";
+      for (const c of statCols) html += "<td class='num'>" + fmtStat(r.stats[c.key]) + "</td>";
+      tr.innerHTML = html;
       body.appendChild(tr);
     }
     $("pool-table").hidden = rows.length === 0;
     $("pool-empty").hidden = rows.length > 0;
     $("pool-empty").textContent = "No players match the filters.";
     $("count").textContent = rows.length + " of " + total.length + " shown · " + matched + " with Savant data";
-    for (const th of document.querySelectorAll("#pool-table th")) {
-      const base = th.textContent.replace(/ [▲▼]$/, "");
-      th.innerHTML = th.dataset.key === sortKey
-        ? base + " <span class='arrow'>" + (sortDir === 1 ? "▲" : "▼") + "</span>"
-        : base;
-    }
   }
 
   function setTab(t) {
@@ -441,11 +546,13 @@
   async function savantUpload(e, kind, statusId) {
     const files = [...e.target.files];
     if (!files.length) return;
-    savant[kind].clear();
+    const store = { mode: null, cols: null, map: null, raw: null };
     let rows = 0;
     try {
-      for (const f of files) rows += parseSavant(await f.text(), kind);
-      fileStatus(statusId, files.map(f => f.name).join(", ") + " — " + rows + " rows, " + savant[kind].size + " players.", "ok");
+      for (const f of files) rows += parseSavant(await f.text(), store, kind);
+      savant[kind] = store;
+      fileStatus(statusId, files.map(f => f.name).join(", ") + " — " +
+        (store.mode === "agg" ? store.map.size + " players (grouped stats)." : rows + " rows, " + store.map.size + " players."), "ok");
       render();
     } catch (err) {
       fileStatus(statusId, err.message, "error");

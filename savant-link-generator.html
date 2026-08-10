@@ -58,6 +58,10 @@
     flex-direction: column;
     gap: 18px;
   }
+  .tpl-note { font-size: 0.85rem; color: var(--ink-soft); max-width: 46ch; }
+  body[data-template="pitcher"] .batter-only, body[data-template="pitcher"] .batter-note { display: none; }
+  body:not([data-template="pitcher"]) .pitcher-only, body:not([data-template="pitcher"]) .pitcher-note { display: none; }
+  .csv-note { font-size: 0.8rem; color: var(--ink-soft); margin: 0; }
   nav { display: flex; gap: 14px; font-size: 0.85rem; }
   nav a { color: var(--ink-soft); text-decoration: none; font-weight: 600; }
   nav a[aria-current="page"] { color: var(--accent); }
@@ -274,6 +278,20 @@
   </header>
 
   <fieldset>
+    <legend>Template</legend>
+    <div class="row" style="align-items:center">
+      <div class="seg" role="group" aria-label="Search template">
+        <button type="button" id="tpl-batter" aria-pressed="true">Batter events</button>
+        <button type="button" id="tpl-pitcher" aria-pressed="false">Pitcher stats</button>
+      </div>
+      <span class="tpl-note batter-note">Batted-ball events over an exit-velo threshold,
+        grouped by player &amp; event.</span>
+      <span class="tpl-note pitcher-note">Per-pitcher stat lines (pitches, K%, whiffs,
+        velo, EV, hard-hit%, barrels/PA%), grouped by player.</span>
+    </div>
+  </fieldset>
+
+  <fieldset>
     <legend>Search window</legend>
     <div class="row">
       <label class="field"><span>Season</span>
@@ -322,7 +340,7 @@
   <fieldset>
     <legend>Batted-ball filter</legend>
     <div class="row">
-      <label class="field"><span>Metric</span>
+      <label class="field batter-only"><span>Metric</span>
         <select id="metric">
           <option value="api_h_launch_speed" selected>Exit velocity (mph)</option>
           <option value="api_h_launch_angle">Launch angle (°)</option>
@@ -330,17 +348,17 @@
           <option value="">No metric filter</option>
         </select>
       </label>
-      <label class="field"><span>Minimum (≥)</span>
+      <label class="field batter-only"><span>Minimum (≥)</span>
         <input type="number" id="metric-gt" value="95" step="any">
       </label>
-      <label class="field"><span>Maximum (≤, optional)</span>
+      <label class="field batter-only"><span>Maximum (≤, optional)</span>
         <input type="number" id="metric-lt" step="any">
       </label>
       <label class="check"><input type="checkbox" id="no-bunts" checked> Exclude bunts</label>
     </div>
   </fieldset>
 
-  <fieldset>
+  <fieldset class="batter-only">
     <legend>Results</legend>
     <div class="row">
       <label class="field"><span>Group by</span>
@@ -374,9 +392,11 @@
       <span>Generated link</span>
       <button type="button" class="primary-btn" id="copy-btn">Copy link</button>
       <a class="open-btn" id="open-link" href="#" target="_blank" rel="noopener">Open in Savant</a>
-      <a class="open-btn" id="csv-link" href="#" target="_blank" rel="noopener" title="Pitch-level detail rows for this search (Savant caps CSV exports at 25,000 rows)">Download CSV</a>
+      <a class="open-btn batter-only" id="csv-link" href="#" target="_blank" rel="noopener" title="Pitch-level detail rows for this search (Savant caps CSV exports at 25,000 rows)">Download CSV</a>
     </div>
     <pre id="url-box"></pre>
+    <p class="csv-note pitcher-only">Grouped stats aren't served by Savant's CSV endpoint —
+      open the link and use the download icon on the results table to get the stats CSV.</p>
   </div>
 </div>
 
@@ -414,7 +434,15 @@
   const $ = (id) => document.getElementById(id);
   const teamBoxes = () => [...document.querySelectorAll("input.team")];
 
+  const PITCHER_STATS = [
+    "chk_stats_hits", "chk_stats_hrs", "chk_stats_so", "chk_stats_k_percent",
+    "chk_stats_whiffs", "chk_stats_velocity", "chk_stats_launch_speed",
+    "chk_stats_launch_angle", "chk_stats_bbdist", "chk_stats_hardhit_percent",
+    "chk_stats_barrels_per_pa_percent",
+  ];
+
   function buildUrl() {
+    const pitcher = document.body.dataset.template === "pitcher";
     const params = [];
     const add = (k, v) => params.push(k + "=" + encodeURIComponent(v));
 
@@ -431,6 +459,21 @@
     if (checked.length > 0 && checked.length < 30) add("hfTeam", checked.join("|") + "|");
 
     if ($("no-bunts").checked) add("hfFlag", "is\\.\\.bunt\\.\\.not|");
+
+    if (pitcher) {
+      // Grouped per-player stat lines, sorted by pitch count.
+      add("group_by", "name");
+      add("min_pitches", "0");
+      add("min_results", "0");
+      add("min_pas", "0");
+      add("sort_col", "pitches");
+      add("sort_order", "desc");
+      for (const c of PITCHER_STATS) add(c, "on");
+      return {
+        page: "https://baseballsavant.mlb.com/statcast_search?" + params.join("&") + "#results",
+        csv: null,
+      };
+    }
 
     const metric = $("metric").value;
     if (metric && ($("metric-gt").value !== "" || $("metric-lt").value !== "")) {
@@ -460,8 +503,25 @@
     const urls = buildUrl();
     $("url-box").textContent = urls.page;
     $("open-link").href = urls.page;
-    $("csv-link").href = urls.csv;
+    if (urls.csv) $("csv-link").href = urls.csv;
   }
+
+  function setTemplate(t) {
+    document.body.dataset.template = t;
+    $("tpl-batter").setAttribute("aria-pressed", String(t === "batter"));
+    $("tpl-pitcher").setAttribute("aria-pressed", String(t === "pitcher"));
+    if (t === "pitcher") {
+      $("player-type").value = "pitcher";
+      $("date-gt").value = "2026-07-01";
+      setTeams(() => true);           // template uses no team filter
+    } else {
+      $("player-type").value = "batter";
+      $("date-gt").value = "2026-08-02";
+      setTeams(id => TEMPLATE_TEAMS.includes(id));
+    }
+  }
+  $("tpl-batter").addEventListener("click", () => setTemplate("batter"));
+  $("tpl-pitcher").addEventListener("click", () => setTemplate("pitcher"));
 
   document.querySelector("main").addEventListener("input", refresh);
   divisionsEl.addEventListener("change", refresh);
