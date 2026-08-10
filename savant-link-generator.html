@@ -253,8 +253,16 @@
 <main>
   <nav>
     <a href="savant-link-generator.html" aria-current="page">Savant links</a>
-    <a href="build.html">DK build</a>
+    <a href="build.html" id="nav-build">DK build</a>
   </nav>
+  <script>
+    // Relative links only resolve when the pages sit side by side on disk;
+    // hosted contexts (Claude artifacts, panel previews) need the artifact URLs.
+    if (location.protocol !== "file:") {
+      document.getElementById("nav-build").href =
+        "https://claude.ai/code/artifact/9c7a7265-a1ae-4694-b1eb-b5fa296003d9";
+    }
+  </script>
 
   <header>
     <h1>Baseball Savant link generator</h1>

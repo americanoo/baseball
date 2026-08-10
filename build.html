@@ -150,9 +150,17 @@
 
 <main>
   <nav>
-    <a href="savant-link-generator.html">Savant links</a>
+    <a href="savant-link-generator.html" id="nav-savant">Savant links</a>
     <a href="build.html" aria-current="page">DK build</a>
   </nav>
+  <script>
+    // Relative links only resolve when the pages sit side by side on disk;
+    // hosted contexts (Claude artifacts, panel previews) need the artifact URLs.
+    if (location.protocol !== "file:") {
+      document.getElementById("nav-savant").href =
+        "https://claude.ai/code/artifact/b7e4d5a7-944e-475d-957d-ffca7f3a3ac0";
+    }
+  </script>
 
   <header>
     <h1>DraftKings MLB player pool</h1>
