@@ -175,7 +175,11 @@
         <p><a class="open-btn" href="https://www.draftkings.com/lobby/getcontests?sport=MLB" target="_blank" rel="noopener">Open DK slate feed</a>
            then select all (<b>Ctrl/Cmd&nbsp;A</b>), copy, paste below.</p>
         <textarea id="json-in" placeholder='Paste the feed JSON here…'></textarea>
-        <div class="btn-row"><button type="button" class="primary-btn" id="parse-btn">Parse pasted JSON</button></div>
+        <div class="btn-row">
+          <button type="button" class="primary-btn" id="parse-btn">Parse pasted JSON</button>
+          <label class="open-btn" for="json-file">Upload saved feed JSON</label>
+          <input type="file" id="json-file" accept=".json,.txt" hidden>
+        </div>
       </div>
     </details>
     <div class="head-row" style="margin-top:12px">
@@ -195,7 +199,10 @@
   <section>
     <h2>Step 2 · Player pool</h2>
     <div class="btn-row">
-      <span class="status" id="pool-status">Pick a slate above — its players load here.</span>
+      <label class="open-btn" for="pool-file">Upload CSV / JSON</label>
+      <input type="file" id="pool-file" accept=".csv,.json,.txt" hidden>
+      <span class="status" id="pool-status">Pick a slate above, or upload a DraftKings CSV
+        (the DKSalaries.csv from any contest's Export to CSV) — no slate list needed.</span>
     </div>
     <details class="fallback" id="pool-fallback" hidden>
       <summary>Auto-load blocked? Paste the player data instead</summary>
@@ -528,6 +535,32 @@
 
   $("search").addEventListener("input", renderPool);
   $("pos-select").addEventListener("change", renderPool);
+
+  $("pool-file").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      parsePool(await file.text());
+      setStatus("pool-status", file.name + " — " + players.length + " players loaded.");
+      $("pool-fallback").open = false;
+    } catch (err) {
+      setStatus("pool-status", file.name + ": " + err.message, true);
+    }
+    e.target.value = "";
+  });
+
+  $("json-file").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      parseFeed(JSON.parse(await file.text()));
+      setStatus("load-status", file.name + " — loaded " + groups.length + " MLB draft groups.");
+      $("slate-fallback").open = false;
+    } catch (err) {
+      setStatus("load-status", file.name + ": " + err.message, true);
+    }
+    e.target.value = "";
+  });
   $("pool-parse-btn").addEventListener("click", () => {
     try {
       parsePool($("pool-in").value);
