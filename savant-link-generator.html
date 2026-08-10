@@ -58,6 +58,10 @@
     flex-direction: column;
     gap: 18px;
   }
+  nav { display: flex; gap: 14px; font-size: 0.85rem; }
+  nav a { color: var(--ink-soft); text-decoration: none; font-weight: 600; }
+  nav a[aria-current="page"] { color: var(--accent); }
+  nav a:hover { text-decoration: underline; }
   header h1 {
     margin: 0;
     font-size: 1.45rem;
@@ -247,6 +251,11 @@
 </style>
 
 <main>
+  <nav>
+    <a href="savant-link-generator.html" aria-current="page">Savant links</a>
+    <a href="build.html">DK build</a>
+  </nav>
+
   <header>
     <h1>Baseball Savant link generator</h1>
     <p>Fill in the variables below; the Statcast search link updates as you go,

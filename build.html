@@ -1,0 +1,321 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DK Build — MLB Slate CSVs</title>
+<style>
+  :root {
+    --bg: #F2F4F8;
+    --surface: #FFFFFF;
+    --surface-2: #E9EDF3;
+    --ink: #182741;
+    --ink-soft: #51617C;
+    --line: #D4DBE6;
+    --accent: #C8102E;
+    --accent-ink: #FFFFFF;
+    --focus: #1D4ED8;
+    --mono-bg: #0F1826;
+    --mono-ink: #D5E2F5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #131B28;
+      --surface: #1C2637;
+      --surface-2: #243044;
+      --ink: #E7ECF4;
+      --ink-soft: #9AA9C0;
+      --line: #32405A;
+      --accent: #F2586E;
+      --accent-ink: #1A0508;
+      --focus: #7FA6FF;
+      --mono-bg: #0D141F;
+      --mono-ink: #C8D7EE;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #131B28;
+    --surface: #1C2637;
+    --surface-2: #243044;
+    --ink: #E7ECF4;
+    --ink-soft: #9AA9C0;
+    --line: #32405A;
+    --accent: #F2586E;
+    --accent-ink: #1A0508;
+    --focus: #7FA6FF;
+    --mono-bg: #0D141F;
+    --mono-ink: #C8D7EE;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  nav { display: flex; gap: 14px; font-size: 0.85rem; }
+  nav a { color: var(--ink-soft); text-decoration: none; font-weight: 600; }
+  nav a[aria-current="page"] { color: var(--accent); }
+  nav a:hover { text-decoration: underline; }
+  header h1 { margin: 0; font-size: 1.45rem; letter-spacing: -0.01em; text-wrap: balance; }
+  header p { margin: 6px 0 0; color: var(--ink-soft); max-width: 65ch; }
+  section {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 16px 18px 18px;
+  }
+  section > h2 {
+    margin: 0 0 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+  .steps p { margin: 0; color: var(--ink-soft); max-width: 70ch; }
+  .steps b { color: var(--ink); }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .primary-btn, .open-btn {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 7px;
+    padding: 6px 16px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .primary-btn { background: var(--accent); color: var(--accent-ink); border: 1px solid transparent; }
+  .primary-btn:hover { filter: brightness(1.08); }
+  .primary-btn:disabled { opacity: 0.5; cursor: default; }
+  .open-btn { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+  .open-btn:hover { border-color: var(--ink-soft); }
+  textarea {
+    width: 100%;
+    min-height: 110px;
+    resize: vertical;
+    font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--mono-ink);
+    background: var(--mono-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  textarea:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  select {
+    font: inherit;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 7px 10px;
+  }
+  .status { font-size: 0.88rem; color: var(--ink-soft); }
+  .status.error { color: var(--accent); font-weight: 600; }
+  .slates-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .slates-head label { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--ink-soft); font-weight: 600; }
+  .slates-head .spacer { flex: 1; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  tr:last-child td { border-bottom: none; }
+  td .open-btn { padding: 4px 12px; font-size: 0.84rem; }
+  .muted { color: var(--ink-soft); }
+  .empty { color: var(--ink-soft); padding: 6px 2px; }
+</style>
+
+<main>
+  <nav>
+    <a href="savant-link-generator.html">Savant links</a>
+    <a href="build.html" aria-current="page">DK build</a>
+  </nav>
+
+  <header>
+    <h1>DraftKings lineup CSVs — MLB slates</h1>
+    <p>Grab the "build a lineup" player CSV (name, ID, position, salary, game info)
+       for every MLB slate on a given day, straight from DraftKings.</p>
+  </header>
+
+  <section>
+    <h2>Step 1 · Load the slate list</h2>
+    <div class="steps">
+      <div class="btn-row">
+        <button type="button" class="primary-btn" id="auto-btn">Auto-load slates</button>
+        <a class="open-btn" href="https://www.draftkings.com/lobby/getcontests?sport=MLB" target="_blank" rel="noopener">Open DK slate feed</a>
+        <span class="status" id="load-status">Slate IDs change daily, so the list comes from DraftKings' lobby feed.</span>
+      </div>
+      <p>If auto-load is blocked by your browser (DraftKings doesn't allow cross-site reads),
+         use the manual route: <b>Open DK slate feed</b> → select all
+         (<b>Ctrl/Cmd&nbsp;A</b>) → copy → paste below.</p>
+      <textarea id="json-in" placeholder='Paste the feed JSON here — it starts with {"SelectedSport"... or {"Contests"...'></textarea>
+      <div class="btn-row">
+        <button type="button" class="primary-btn" id="parse-btn">Parse pasted JSON</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Step 2 · Download slate CSVs</h2>
+    <div class="slates-head">
+      <label>Day
+        <select id="day-select" disabled><option>Load slates first</option></select>
+      </label>
+      <span class="spacer"></span>
+      <span class="status" id="slate-count"></span>
+      <button type="button" class="primary-btn" id="dl-all" disabled>Download all shown</button>
+    </div>
+    <div class="table-wrap">
+      <table id="slate-table" hidden>
+        <thead>
+          <tr><th>Start (ET)</th><th>Slate</th><th>Type</th><th>Games</th><th></th></tr>
+        </thead>
+        <tbody id="slate-body"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="slate-empty">No slates loaded yet.</p>
+  </section>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const CONTEST_TYPES = { 10: "Classic", 96: "Showdown", 70: "Tiers", 145: "Best Ball" };
+  const csvUrl = (g) =>
+    "https://www.draftkings.com/lineup/getavailableplayerscsv?contestTypeId=" +
+    g.contestType + "&draftGroupId=" + g.id;
+
+  let groups = [];
+
+  function parseFeed(data) {
+    const raw = data.DraftGroups || [];
+    const seen = new Set();
+    groups = [];
+    for (const g of raw) {
+      const id = g.DraftGroupId;
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      const start = String(g.StartDateEst || g.StartDate || "");
+      groups.push({
+        id,
+        contestType: g.ContestTypeId,
+        date: start.slice(0, 10),
+        time: start.slice(11, 16),
+        suffix: (g.ContestStartTimeSuffix || "").replace(/[()]/g, "").trim(),
+        games: g.GameCount,
+        tag: g.DraftGroupTag || "",
+      });
+    }
+    groups.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time) || (b.games || 0) - (a.games || 0));
+    if (!groups.length) throw new Error("No DraftGroups found in that JSON — make sure you copied the whole page.");
+    buildDaySelect();
+    renderSlates();
+  }
+
+  function buildDaySelect() {
+    const days = [...new Set(groups.map(g => g.date).filter(Boolean))].sort();
+    const sel = $("day-select");
+    sel.innerHTML = "";
+    // "Today" in DraftKings terms is US Eastern time.
+    const todayEt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+    for (const d of days) {
+      const opt = document.createElement("option");
+      opt.value = d;
+      opt.textContent = d === todayEt ? d + " (today)" : d;
+      sel.appendChild(opt);
+    }
+    sel.disabled = false;
+    sel.value = days.includes(todayEt) ? todayEt : days[0];
+  }
+
+  function fmtTime(t) {
+    if (!/^\d\d:\d\d$/.test(t)) return t || "—";
+    let [h, m] = t.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return h + ":" + String(m).padStart(2, "0") + " " + ampm;
+  }
+
+  function shown() { return groups.filter(g => g.date === $("day-select").value); }
+
+  function renderSlates() {
+    const rows = shown();
+    const body = $("slate-body");
+    body.innerHTML = "";
+    for (const g of rows) {
+      const tr = document.createElement("tr");
+      const label = g.suffix || g.tag || (g.games === 1 ? "Single game" : "Slate");
+      tr.innerHTML =
+        "<td>" + fmtTime(g.time) + "</td>" +
+        "<td>" + label + " <span class='muted'>#" + g.id + "</span></td>" +
+        "<td>" + (CONTEST_TYPES[g.contestType] || "Type " + g.contestType) + "</td>" +
+        "<td>" + (g.games ?? "—") + "</td>" +
+        "<td><a class='open-btn' href='" + csvUrl(g) + "'>Download CSV</a></td>";
+      body.appendChild(tr);
+    }
+    $("slate-table").hidden = rows.length === 0;
+    $("slate-empty").hidden = rows.length > 0;
+    $("slate-empty").textContent = "No slates for this day.";
+    $("slate-count").textContent = rows.length + " slate" + (rows.length === 1 ? "" : "s");
+    $("dl-all").disabled = rows.length === 0;
+  }
+
+  function setStatus(msg, isError) {
+    const el = $("load-status");
+    el.textContent = msg;
+    el.classList.toggle("error", !!isError);
+  }
+
+  $("auto-btn").addEventListener("click", async () => {
+    setStatus("Fetching slate feed…");
+    try {
+      const res = await fetch("https://www.draftkings.com/lobby/getcontests?sport=MLB");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      parseFeed(await res.json());
+      setStatus("Loaded " + groups.length + " MLB draft groups.");
+    } catch (e) {
+      setStatus("Auto-load blocked (" + e.message + ") — use the manual paste route below.", true);
+    }
+  });
+
+  $("parse-btn").addEventListener("click", () => {
+    try {
+      parseFeed(JSON.parse($("json-in").value));
+      setStatus("Loaded " + groups.length + " MLB draft groups from pasted JSON.");
+    } catch (e) {
+      setStatus(e.message, true);
+    }
+  });
+
+  $("day-select").addEventListener("change", renderSlates);
+
+  $("dl-all").addEventListener("click", () => {
+    // Stagger navigations so the browser treats each as a separate download.
+    shown().forEach((g, i) => {
+      setTimeout(() => {
+        const a = document.createElement("a");
+        a.href = csvUrl(g);
+        a.download = "";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }, i * 600);
+    });
+  });
+</script>

@@ -1,8 +1,13 @@
-# Baseball Savant link generator
+# Baseball tools
 
-A single-file web tool ([`savant-link-generator.html`](savant-link-generator.html)) that builds
-Baseball Savant Statcast search links from a saved template. Open the file in any browser —
-no server or dependencies needed.
+Two single-file web tools — open either in any browser, no server or dependencies needed:
+
+- [`savant-link-generator.html`](savant-link-generator.html) — builds Baseball Savant
+  Statcast search links from a saved template.
+- [`build.html`](build.html) — lists that day's DraftKings MLB slates and downloads the
+  "build a lineup" player CSV (name, ID, position, salary, game info) for each.
+
+## Savant link generator
 
 The form starts pre-filled with the template's values:
 
@@ -18,6 +23,18 @@ The form starts pre-filled with the template's values:
 The generated link updates live as you change any field, with Copy,
 Open-in-Savant, and Download CSV buttons. The CSV button hits Savant's own
 export endpoint (`/statcast_search/csv` with `all=true&type=details`) using the
-same query, returning pitch-level detail rows (capped by Savant at 25,000 rows). Parameter names and encoding (`hfGT`, `hfSea`, `hfTeam`,
+same query, returning pitch-level detail rows (capped by Savant at 25,000 rows).
+
+## DK build
+
+`build.html` discovers slates from DraftKings' lobby feed
+(`draftkings.com/lobby/getcontests?sport=MLB`): it tries fetching directly, and when the
+browser blocks the cross-site read, a one-click manual route opens the feed so you can
+paste the JSON in. Slates for the selected day (default: today, US Eastern) are listed
+with start time, slate label, contest type, and game count. Each row's Download CSV
+button hits DraftKings' player-export endpoint
+(`draftkings.com/lineup/getavailableplayerscsv?contestTypeId=…&draftGroupId=…`) — the
+same CSV the Build Lineup / bulk-entry flow uses — and Download-all grabs every slate
+shown, staggered so the browser saves each file. Parameter names and encoding (`hfGT`, `hfSea`, `hfTeam`,
 `hfFlag`, `metric_1`, …) match the original template link byte-for-byte, so the
 search behaves identically on baseballsavant.mlb.com.
