@@ -15,7 +15,9 @@ The form starts pre-filled with the template's values:
 | Batted-ball filter | Exit velocity ≥ 95 mph, bunts excluded |
 | Results | Grouped by player & event, sorted by projected distance (desc) |
 
-The generated link updates live as you change any field, with Copy and
-Open-in-Savant buttons. Parameter names and encoding (`hfGT`, `hfSea`, `hfTeam`,
+The generated link updates live as you change any field, with Copy,
+Open-in-Savant, and Download CSV buttons. The CSV button hits Savant's own
+export endpoint (`/statcast_search/csv` with `all=true&type=details`) using the
+same query, returning pitch-level detail rows (capped by Savant at 25,000 rows). Parameter names and encoding (`hfGT`, `hfSea`, `hfTeam`,
 `hfFlag`, `metric_1`, …) match the original template link byte-for-byte, so the
 search behaves identically on baseballsavant.mlb.com.

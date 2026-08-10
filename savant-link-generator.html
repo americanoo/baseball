@@ -354,6 +354,7 @@
       <span>Generated link</span>
       <button type="button" class="primary-btn" id="copy-btn">Copy link</button>
       <a class="open-btn" id="open-link" href="#" target="_blank" rel="noopener">Open in Savant</a>
+      <a class="open-btn" id="csv-link" href="#" target="_blank" rel="noopener" title="Pitch-level detail rows for this search (Savant caps CSV exports at 25,000 rows)">Download CSV</a>
     </div>
     <pre id="url-box"></pre>
   </div>
@@ -428,13 +429,18 @@
     add("chk_event_launch_angle", "on");
     add("chk_event_hit_distance_sc", "on");
 
-    return "https://baseballsavant.mlb.com/statcast_search?" + params.join("&") + "#results";
+    return {
+      page: "https://baseballsavant.mlb.com/statcast_search?" + params.join("&") + "#results",
+      // Savant's own CSV export endpoint: same query, pitch-level detail rows.
+      csv: "https://baseballsavant.mlb.com/statcast_search/csv?all=true&" + params.join("&") + "&type=details",
+    };
   }
 
   function refresh() {
-    const url = buildUrl();
-    $("url-box").textContent = url;
-    $("open-link").href = url;
+    const urls = buildUrl();
+    $("url-box").textContent = urls.page;
+    $("open-link").href = urls.page;
+    $("csv-link").href = urls.csv;
   }
 
   document.querySelector("main").addEventListener("input", refresh);
