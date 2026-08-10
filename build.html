@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DK Build — MLB Slate CSVs</title>
+<title>DK Build — MLB Player Pools</title>
 <style>
   :root {
     --bg: #F2F4F8;
@@ -51,7 +51,7 @@
     font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   main {
-    max-width: 900px;
+    max-width: 980px;
     margin: 0 auto;
     padding: 28px 20px 60px;
     display: flex;
@@ -63,7 +63,7 @@
   nav a[aria-current="page"] { color: var(--accent); }
   nav a:hover { text-decoration: underline; }
   header h1 { margin: 0; font-size: 1.45rem; letter-spacing: -0.01em; text-wrap: balance; }
-  header p { margin: 6px 0 0; color: var(--ink-soft); max-width: 65ch; }
+  header p { margin: 6px 0 0; color: var(--ink-soft); max-width: 68ch; }
   section {
     border: 1px solid var(--line);
     border-radius: 10px;
@@ -78,9 +78,6 @@
     text-transform: uppercase;
     color: var(--ink-soft);
   }
-  .steps { display: flex; flex-direction: column; gap: 10px; }
-  .steps p { margin: 0; color: var(--ink-soft); max-width: 70ch; }
-  .steps b { color: var(--ink); }
   .btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .primary-btn, .open-btn {
     font: inherit;
@@ -100,7 +97,7 @@
   .open-btn:hover { border-color: var(--ink-soft); }
   textarea {
     width: 100%;
-    min-height: 110px;
+    min-height: 100px;
     resize: vertical;
     font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     color: var(--mono-ink);
@@ -109,11 +106,11 @@
     border-radius: 8px;
     padding: 10px 12px;
   }
-  textarea:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+  textarea:focus-visible, select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
-  select {
+  select, input[type="search"] {
     font: inherit;
     color: var(--ink);
     background: var(--bg);
@@ -123,23 +120,35 @@
   }
   .status { font-size: 0.88rem; color: var(--ink-soft); }
   .status.error { color: var(--accent); font-weight: 600; }
-  .slates-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
-  .slates-head label { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--ink-soft); font-weight: 600; }
-  .slates-head .spacer { flex: 1; }
-  .table-wrap { overflow-x: auto; }
+  details.fallback { margin-top: 10px; }
+  details.fallback summary { cursor: pointer; font-size: 0.88rem; color: var(--ink-soft); font-weight: 600; }
+  details.fallback .inner { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  details.fallback p { margin: 0; font-size: 0.88rem; color: var(--ink-soft); max-width: 72ch; }
+  .head-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .head-row label { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--ink-soft); font-weight: 600; }
+  .head-row .spacer { flex: 1; }
+  .table-wrap { overflow-x: auto; max-height: 560px; overflow-y: auto; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th {
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ink-soft);
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    cursor: pointer;
+    user-select: none;
   }
+  th .arrow { color: var(--accent); }
+  th.num, td.num { text-align: right; }
   tr:last-child td { border-bottom: none; }
-  td .open-btn { padding: 4px 12px; font-size: 0.84rem; }
+  td .open-btn { padding: 3px 12px; font-size: 0.84rem; }
+  tr.active td { background: var(--surface-2); }
   .muted { color: var(--ink-soft); }
-  .empty { color: var(--ink-soft); padding: 6px 2px; }
+  .empty { color: var(--ink-soft); padding: 6px 2px; margin: 0; }
 </style>
 
 <main>
@@ -149,59 +158,110 @@
   </nav>
 
   <header>
-    <h1>DraftKings lineup CSVs — MLB slates</h1>
-    <p>Grab the "build a lineup" player CSV (name, ID, position, salary, game info)
-       for every MLB slate on a given day, straight from DraftKings.</p>
+    <h1>DraftKings MLB player pools</h1>
+    <p>Pick a slate for the day and get its full player pool as a sortable table —
+       name, position, salary, team, game, and average fantasy points.</p>
   </header>
 
   <section>
-    <h2>Step 1 · Load the slate list</h2>
-    <div class="steps">
-      <div class="btn-row">
-        <button type="button" class="primary-btn" id="auto-btn">Auto-load slates</button>
-        <a class="open-btn" href="https://www.draftkings.com/lobby/getcontests?sport=MLB" target="_blank" rel="noopener">Open DK slate feed</a>
-        <span class="status" id="load-status">Slate IDs change daily, so the list comes from DraftKings' lobby feed.</span>
-      </div>
-      <p>If auto-load is blocked by your browser (DraftKings doesn't allow cross-site reads),
-         use the manual route: <b>Open DK slate feed</b> → select all
-         (<b>Ctrl/Cmd&nbsp;A</b>) → copy → paste below.</p>
-      <textarea id="json-in" placeholder='Paste the feed JSON here — it starts with {"SelectedSport"... or {"Contests"...'></textarea>
-      <div class="btn-row">
-        <button type="button" class="primary-btn" id="parse-btn">Parse pasted JSON</button>
-      </div>
+    <h2>Step 1 · Slates</h2>
+    <div class="btn-row">
+      <button type="button" class="primary-btn" id="auto-btn">Auto-load slates</button>
+      <span class="status" id="load-status">Loads the day's MLB slates from DraftKings' lobby feed.</span>
     </div>
-  </section>
-
-  <section>
-    <h2>Step 2 · Download slate CSVs</h2>
-    <div class="slates-head">
-      <label>Day
-        <select id="day-select" disabled><option>Load slates first</option></select>
-      </label>
+    <details class="fallback" id="slate-fallback">
+      <summary>Auto-load blocked? Paste the feed instead</summary>
+      <div class="inner">
+        <p><a class="open-btn" href="https://www.draftkings.com/lobby/getcontests?sport=MLB" target="_blank" rel="noopener">Open DK slate feed</a>
+           then select all (<b>Ctrl/Cmd&nbsp;A</b>), copy, paste below.</p>
+        <textarea id="json-in" placeholder='Paste the feed JSON here…'></textarea>
+        <div class="btn-row"><button type="button" class="primary-btn" id="parse-btn">Parse pasted JSON</button></div>
+      </div>
+    </details>
+    <div class="head-row" style="margin-top:12px">
+      <label>Day <select id="day-select" disabled><option>Load slates first</option></select></label>
       <span class="spacer"></span>
       <span class="status" id="slate-count"></span>
-      <button type="button" class="primary-btn" id="dl-all" disabled>Download all shown</button>
     </div>
     <div class="table-wrap">
       <table id="slate-table" hidden>
-        <thead>
-          <tr><th>Start (ET)</th><th>Slate</th><th>Type</th><th>Games</th><th></th></tr>
-        </thead>
+        <thead><tr><th>Start (ET)</th><th>Slate</th><th>Type</th><th>Games</th><th></th></tr></thead>
         <tbody id="slate-body"></tbody>
       </table>
     </div>
     <p class="empty" id="slate-empty">No slates loaded yet.</p>
+  </section>
+
+  <section>
+    <h2>Step 2 · Player pool</h2>
+    <div class="btn-row">
+      <span class="status" id="pool-status">Pick a slate above — its players load here.</span>
+    </div>
+    <details class="fallback" id="pool-fallback" hidden>
+      <summary>Auto-load blocked? Paste the player data instead</summary>
+      <div class="inner">
+        <p><a class="open-btn" id="open-draftables" href="#" target="_blank" rel="noopener">Open players JSON</a>
+           <a class="open-btn" id="open-csv" href="#" target="_blank" rel="noopener">Open players CSV</a>
+           — open either, copy everything, paste below.</p>
+        <textarea id="pool-in" placeholder="Paste the draftables JSON or the CSV text here…"></textarea>
+        <div class="btn-row"><button type="button" class="primary-btn" id="pool-parse-btn">Parse pasted data</button></div>
+      </div>
+    </details>
+    <div class="head-row" style="margin-top:12px">
+      <input type="search" id="search" placeholder="Search player or team…" disabled>
+      <label>Position <select id="pos-select" disabled><option value="">All</option></select></label>
+      <span class="spacer"></span>
+      <span class="status" id="pool-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="pool-table" hidden>
+        <thead><tr>
+          <th data-key="name">Name</th>
+          <th data-key="pos">Pos</th>
+          <th data-key="roster">Roster</th>
+          <th data-key="salary" class="num">Salary</th>
+          <th data-key="team">Team</th>
+          <th data-key="game">Game</th>
+          <th data-key="fppg" class="num">FPPG</th>
+        </tr></thead>
+        <tbody id="pool-body"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="pool-empty">No player pool loaded yet.</p>
   </section>
 </main>
 
 <script>
   const $ = (id) => document.getElementById(id);
   const CONTEST_TYPES = { 10: "Classic", 96: "Showdown", 70: "Tiers", 145: "Best Ball" };
-  const csvUrl = (g) =>
-    "https://www.draftkings.com/lineup/getavailableplayerscsv?contestTypeId=" +
-    g.contestType + "&draftGroupId=" + g.id;
 
+  const lobbyUrl = "https://www.draftkings.com/lobby/getcontests?sport=MLB";
+  const draftablesUrl = (g) => "https://api.draftkings.com/draftgroups/v1/draftgroups/" + g.id + "/draftables?format=json";
+  const csvUrl = (g) => "https://www.draftkings.com/lineup/getavailableplayerscsv?contestTypeId=" + g.contestType + "&draftGroupId=" + g.id;
+
+  // DraftKings sends no CORS headers, so a direct browser fetch usually fails.
+  // Fall back through public CORS relays; if everything is blocked (e.g. the
+  // artifact sandbox forbids all external requests), the paste route remains.
+  async function fetchText(url) {
+    const attempts = [
+      url,
+      "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+      "https://corsproxy.io/?url=" + encodeURIComponent(url),
+    ];
+    let lastErr = null;
+    for (const u of attempts) {
+      try {
+        const res = await fetch(u);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return await res.text();
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr || new Error("all fetch routes failed");
+  }
+
+  // ---------- Step 1: slates ----------
   let groups = [];
+  let current = null;
 
   function parseFeed(data) {
     const raw = data.DraftGroups || [];
@@ -252,70 +312,229 @@
     return h + ":" + String(m).padStart(2, "0") + " " + ampm;
   }
 
-  function shown() { return groups.filter(g => g.date === $("day-select").value); }
+  function shownSlates() { return groups.filter(g => g.date === $("day-select").value); }
 
   function renderSlates() {
-    const rows = shown();
+    const rows = shownSlates();
     const body = $("slate-body");
     body.innerHTML = "";
     for (const g of rows) {
       const tr = document.createElement("tr");
+      if (current && current.id === g.id) tr.className = "active";
       const label = g.suffix || g.tag || (g.games === 1 ? "Single game" : "Slate");
       tr.innerHTML =
         "<td>" + fmtTime(g.time) + "</td>" +
         "<td>" + label + " <span class='muted'>#" + g.id + "</span></td>" +
         "<td>" + (CONTEST_TYPES[g.contestType] || "Type " + g.contestType) + "</td>" +
         "<td>" + (g.games ?? "—") + "</td>" +
-        "<td><a class='open-btn' href='" + csvUrl(g) + "'>Download CSV</a></td>";
+        "<td><button type='button' class='open-btn'>View players</button></td>";
+      tr.querySelector("button").addEventListener("click", () => selectSlate(g));
       body.appendChild(tr);
     }
     $("slate-table").hidden = rows.length === 0;
     $("slate-empty").hidden = rows.length > 0;
     $("slate-empty").textContent = "No slates for this day.";
-    $("slate-count").textContent = rows.length + " slate" + (rows.length === 1 ? "" : "s");
-    $("dl-all").disabled = rows.length === 0;
+    $("slate-count").textContent = rows.length ? rows.length + " slate" + (rows.length === 1 ? "" : "s") : "";
   }
 
-  function setStatus(msg, isError) {
-    const el = $("load-status");
+  function setStatus(id, msg, isError) {
+    const el = $(id);
     el.textContent = msg;
     el.classList.toggle("error", !!isError);
   }
 
   $("auto-btn").addEventListener("click", async () => {
-    setStatus("Fetching slate feed…");
+    setStatus("load-status", "Fetching slate feed…");
     try {
-      const res = await fetch("https://www.draftkings.com/lobby/getcontests?sport=MLB");
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      parseFeed(await res.json());
-      setStatus("Loaded " + groups.length + " MLB draft groups.");
+      parseFeed(JSON.parse(await fetchText(lobbyUrl)));
+      setStatus("load-status", "Loaded " + groups.length + " MLB draft groups.");
+      $("slate-fallback").open = false;
     } catch (e) {
-      setStatus("Auto-load blocked (" + e.message + ") — use the manual paste route below.", true);
+      setStatus("load-status", "Auto-load blocked here (" + e.message + ") — use the paste route below. (If you're viewing this as a Claude artifact, outside requests are always blocked; the saved local copy of this page can auto-load.)", true);
+      $("slate-fallback").open = true;
     }
   });
 
   $("parse-btn").addEventListener("click", () => {
     try {
       parseFeed(JSON.parse($("json-in").value));
-      setStatus("Loaded " + groups.length + " MLB draft groups from pasted JSON.");
+      setStatus("load-status", "Loaded " + groups.length + " MLB draft groups from pasted JSON.");
+      $("slate-fallback").open = false;
     } catch (e) {
-      setStatus(e.message, true);
+      setStatus("load-status", e.message, true);
     }
   });
 
   $("day-select").addEventListener("change", renderSlates);
 
-  $("dl-all").addEventListener("click", () => {
-    // Stagger navigations so the browser treats each as a separate download.
-    shown().forEach((g, i) => {
-      setTimeout(() => {
-        const a = document.createElement("a");
-        a.href = csvUrl(g);
-        a.download = "";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }, i * 600);
+  // ---------- Step 2: player pool ----------
+  let players = [];
+  let sortKey = "salary", sortDir = -1;
+
+  function slateLabel(g) {
+    return (g.suffix || g.tag || "Slate") + " #" + g.id + " (" + (CONTEST_TYPES[g.contestType] || "Type " + g.contestType) + ")";
+  }
+
+  async function selectSlate(g) {
+    current = g;
+    renderSlates();
+    $("open-draftables").href = draftablesUrl(g);
+    $("open-csv").href = csvUrl(g);
+    $("pool-fallback").hidden = false;
+    setStatus("pool-status", "Loading players for " + slateLabel(g) + "…");
+    try {
+      parsePool(await fetchText(draftablesUrl(g)));
+      setStatus("pool-status", slateLabel(g) + " — loaded.");
+      $("pool-fallback").open = false;
+    } catch (e) {
+      setStatus("pool-status", "Auto-load blocked for " + slateLabel(g) + " (" + e.message + ") — open the JSON or CSV below, copy it all, and paste.", true);
+      $("pool-fallback").open = true;
+    }
+  }
+
+  function parsePool(text) {
+    const t = text.trim();
+    players = t.startsWith("{") || t.startsWith("[") ? fromDraftables(JSON.parse(t)) : fromCsv(t);
+    if (!players.length) throw new Error("No players found in that data.");
+    buildPosSelect();
+    $("search").disabled = false;
+    $("search").value = "";
+    renderPool();
+  }
+
+  function fromDraftables(data) {
+    const raw = data.draftables || [];
+    const seen = new Set();
+    const out = [];
+    for (const d of raw) {
+      if (seen.has(d.draftableId)) continue;
+      seen.add(d.draftableId);
+      const fppgAttr = (d.draftStatAttributes || []).find(a => a.id === 90);
+      out.push({
+        name: d.displayName || ((d.firstName || "") + " " + (d.lastName || "")).trim(),
+        pos: d.position || "",
+        roster: "",
+        salary: Number(d.salary) || 0,
+        team: d.teamAbbreviation || "",
+        game: (d.competition && d.competition.name) || "",
+        fppg: fppgAttr ? Number(fppgAttr.value) || 0 : null,
+      });
+    }
+    return out;
+  }
+
+  function fromCsv(text) {
+    const rows = [];
+    // Minimal CSV parser: handles quoted fields and commas inside quotes.
+    let field = "", row = [], inQ = false;
+    const pushF = () => { row.push(field); field = ""; };
+    const pushR = () => { if (row.length > 1 || row[0] !== "") rows.push(row); row = []; };
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQ) {
+        if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+        else field += c;
+      } else if (c === '"') inQ = true;
+      else if (c === ",") pushF();
+      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; pushF(); pushR(); }
+      else field += c;
+    }
+    if (field !== "" || row.length) { pushF(); pushR(); }
+    if (rows.length < 2) return [];
+    const head = rows[0].map(h => h.trim().toLowerCase());
+    const col = (n) => head.indexOf(n);
+    const iName = col("name"), iPos = col("position"), iRoster = col("roster position"),
+          iSal = col("salary"), iGame = col("game info"), iTeam = col("teamabbrev"),
+          iFppg = col("avgpointspergame");
+    return rows.slice(1).filter(r => r[iName]).map(r => ({
+      name: r[iName] || "",
+      pos: iPos >= 0 ? r[iPos] : "",
+      roster: iRoster >= 0 ? r[iRoster] : "",
+      salary: iSal >= 0 ? Number(r[iSal]) || 0 : 0,
+      team: iTeam >= 0 ? r[iTeam] : "",
+      game: iGame >= 0 ? (r[iGame] || "").split(" ")[0] : "",
+      fppg: iFppg >= 0 ? Number(r[iFppg]) || 0 : null,
+    }));
+  }
+
+  function buildPosSelect() {
+    const sel = $("pos-select");
+    const positions = [...new Set(players.map(p => p.pos).filter(Boolean))].sort();
+    sel.innerHTML = "<option value=''>All</option>";
+    for (const p of positions) {
+      const opt = document.createElement("option");
+      opt.value = p;
+      opt.textContent = p;
+      sel.appendChild(opt);
+    }
+    sel.disabled = false;
+    sel.value = "";
+  }
+
+  function shownPlayers() {
+    const q = $("search").value.trim().toLowerCase();
+    const pos = $("pos-select").value;
+    let rows = players;
+    if (pos) rows = rows.filter(p => p.pos === pos);
+    if (q) rows = rows.filter(p => (p.name + " " + p.team).toLowerCase().includes(q));
+    const dir = sortDir;
+    const key = sortKey;
+    return [...rows].sort((a, b) => {
+      const av = a[key], bv = b[key];
+      if (typeof av === "number" || typeof bv === "number") return dir * ((av ?? -Infinity) - (bv ?? -Infinity));
+      return dir * String(av).localeCompare(String(bv));
     });
+  }
+
+  const fmtSalary = new Intl.NumberFormat("en-US");
+
+  function renderPool() {
+    const rows = shownPlayers();
+    const body = $("pool-body");
+    body.innerHTML = "";
+    for (const p of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + p.name + "</td>" +
+        "<td>" + p.pos + "</td>" +
+        "<td>" + (p.roster || "—") + "</td>" +
+        "<td class='num'>$" + fmtSalary.format(p.salary) + "</td>" +
+        "<td>" + p.team + "</td>" +
+        "<td class='muted'>" + p.game + "</td>" +
+        "<td class='num'>" + (p.fppg == null ? "—" : p.fppg.toFixed(2)) + "</td>";
+      body.appendChild(tr);
+    }
+    $("pool-table").hidden = rows.length === 0;
+    $("pool-empty").hidden = rows.length > 0;
+    $("pool-empty").textContent = players.length ? "No players match the filters." : "No player pool loaded yet.";
+    $("pool-count").textContent = players.length
+      ? rows.length + " of " + players.length + " players"
+      : "";
+    for (const th of document.querySelectorAll("#pool-table th")) {
+      const base = th.textContent.replace(/ [▲▼]$/, "");
+      th.innerHTML = th.dataset.key === sortKey
+        ? base + " <span class='arrow'>" + (sortDir === 1 ? "▲" : "▼") + "</span>"
+        : base;
+    }
+  }
+
+  document.querySelector("#pool-table thead").addEventListener("click", (e) => {
+    const th = e.target.closest("th");
+    if (!th || !th.dataset.key) return;
+    if (sortKey === th.dataset.key) sortDir = -sortDir;
+    else { sortKey = th.dataset.key; sortDir = th.classList.contains("num") ? -1 : 1; }
+    renderPool();
+  });
+
+  $("search").addEventListener("input", renderPool);
+  $("pos-select").addEventListener("change", renderPool);
+  $("pool-parse-btn").addEventListener("click", () => {
+    try {
+      parsePool($("pool-in").value);
+      setStatus("pool-status", (current ? slateLabel(current) : "Pasted pool") + " — loaded.");
+      $("pool-fallback").open = false;
+    } catch (e) {
+      setStatus("pool-status", e.message, true);
+    }
   });
 </script>

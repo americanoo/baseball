@@ -27,14 +27,17 @@ same query, returning pitch-level detail rows (capped by Savant at 25,000 rows).
 
 ## DK build
 
-`build.html` discovers slates from DraftKings' lobby feed
-(`draftkings.com/lobby/getcontests?sport=MLB`): it tries fetching directly, and when the
-browser blocks the cross-site read, a one-click manual route opens the feed so you can
-paste the JSON in. Slates for the selected day (default: today, US Eastern) are listed
-with start time, slate label, contest type, and game count. Each row's Download CSV
-button hits DraftKings' player-export endpoint
-(`draftkings.com/lineup/getavailableplayerscsv?contestTypeId=…&draftGroupId=…`) — the
-same CSV the Build Lineup / bulk-entry flow uses — and Download-all grabs every slate
-shown, staggered so the browser saves each file. Parameter names and encoding (`hfGT`, `hfSea`, `hfTeam`,
+`build.html` shows the day's DraftKings MLB slates and, for a picked slate, its full
+player pool as a sortable, filterable table (name, position, roster slot, salary, team,
+game, FPPG).
+
+Slates come from DraftKings' lobby feed (`draftkings.com/lobby/getcontests?sport=MLB`)
+and player pools from the draftables endpoint
+(`api.draftkings.com/draftgroups/v1/draftgroups/{id}/draftables`). DraftKings sends no
+CORS headers, so auto-load tries a direct fetch and then public CORS relays
+(allorigins, corsproxy); when every route is blocked — always the case inside the
+Claude artifact sandbox, which forbids all external requests — each step has a paste
+fallback: open the feed/JSON/CSV in a tab, copy, paste, parse. The pool parser accepts
+either the draftables JSON or the `getavailableplayerscsv` CSV text. Parameter names and encoding (`hfGT`, `hfSea`, `hfTeam`,
 `hfFlag`, `metric_1`, …) match the original template link byte-for-byte, so the
 search behaves identically on baseballsavant.mlb.com.
