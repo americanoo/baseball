@@ -143,9 +143,9 @@
   td .caret { display: inline-block; width: 1em; color: var(--ink-soft); }
   tr.detail-row td { background: var(--bg); padding: 8px 12px 12px 32px; }
   table.mini { width: auto; min-width: 380px; }
-  table.mini th, table.mini td { padding: 3px 12px; font-size: 0.84rem; border-bottom: 1px solid var(--line); position: static; cursor: default; }
-  table.mini th { background: transparent; }
-  table.mini th:hover { color: var(--ink-soft); text-decoration: none; }
+  table.mini th, table.mini td { padding: 3px 12px; font-size: 0.84rem; border-bottom: 1px solid var(--line); position: static; }
+  table.mini th { background: transparent; cursor: pointer; }
+  table.mini th:hover { color: var(--accent); text-decoration: underline; }
   .muted { color: var(--ink-soft); }
   .empty { color: var(--ink-soft); padding: 6px 2px; margin: 0; }
   .strip-dot-hr { fill: var(--viz-hr); stroke: var(--surface); stroke-width: 1.2; }
@@ -503,8 +503,8 @@
   ];
 
   const sections = {
-    bat: { sortKey: "salary", sortDir: -1, expanded: new Set() },
-    pit: { sortKey: "salary", sortDir: -1, expanded: new Set() },
+    bat: { sortKey: "salary", sortDir: -1, expanded: new Set(), miniKey: "date", miniDir: -1 },
+    pit: { sortKey: "salary", sortDir: -1, expanded: new Set(), miniKey: "date", miniDir: -1 },
   };
 
   function storeRange(store) {
@@ -624,8 +624,25 @@
       if (open) {
         const dtr = document.createElement("tr");
         dtr.className = "detail-row";
-        const evs = [...r.events].sort((a, b) => (b.ev ?? -1) - (a.ev ?? -1));
-        let mini = "<table class='mini'><thead><tr><th>Date</th><th>Result</th><th class='num'>EV</th><th class='num'>LA</th><th class='num'>Dist</th></tr></thead><tbody>";
+        const mk = st.miniKey, md = st.miniDir;
+        const evs = [...r.events].sort((a, b) => {
+          const av = mk === "result" ? eventLabel(a.event) : a[mk];
+          const bv = mk === "result" ? eventLabel(b.event) : b[mk];
+          if (typeof av === "number" || typeof bv === "number" || av == null || bv == null)
+            return md * ((av ?? -Infinity) - (bv ?? -Infinity));
+          return md * String(av).localeCompare(String(bv));
+        });
+        const MINI_COLS = [
+          { key: "date", label: "Date" }, { key: "result", label: "Result" },
+          { key: "ev", label: "EV", num: true }, { key: "la", label: "LA", num: true },
+          { key: "dist", label: "Dist", num: true },
+        ];
+        let mini = "<table class='mini'><thead><tr>";
+        for (const c of MINI_COLS) {
+          mini += "<th data-mini='" + c.key + "'" + (c.num ? " class='num'" : "") + ">" + c.label +
+            (mk === c.key ? " <span class='arrow'>" + (md === 1 ? "▲" : "▼") + "</span>" : "") + "</th>";
+        }
+        mini += "</tr></thead><tbody>";
         for (const e of evs) {
           mini += "<tr><td class='muted'>" + (e.date || "—") + "</td><td>" + eventLabel(e.event) + "</td>" +
             "<td class='num'>" + (e.ev == null ? "—" : e.ev.toFixed(1)) + "</td>" +
@@ -634,6 +651,13 @@
         }
         mini += "</tbody></table>";
         dtr.innerHTML = "<td colspan='" + nCols + "'>" + mini + "</td>";
+        dtr.querySelector("thead").addEventListener("click", (ev) => {
+          const th = ev.target.closest("th");
+          if (!th || !th.dataset.mini) return;
+          if (st.miniKey === th.dataset.mini) st.miniDir = -st.miniDir;
+          else { st.miniKey = th.dataset.mini; st.miniDir = -1; }
+          render(kind);
+        });
         body.appendChild(dtr);
       }
     }
