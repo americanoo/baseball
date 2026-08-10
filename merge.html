@@ -13,6 +13,8 @@
     --accent-ink: #FFFFFF;
     --focus: #1D4ED8;
     --ok: #1B7F4B;
+    --viz-hr: #C8102E;
+    --viz-hit: #2F6BC4;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -26,6 +28,8 @@
       --accent-ink: #1A0508;
       --focus: #7FA6FF;
       --ok: #4CC98A;
+      --viz-hr: #F2586E;
+      --viz-hit: #5B85E8;
     }
   }
   :root[data-theme="dark"] {
@@ -39,6 +43,8 @@
     --accent-ink: #1A0508;
     --focus: #7FA6FF;
     --ok: #4CC98A;
+    --viz-hr: #F2586E;
+    --viz-hit: #5B85E8;
   }
   * { box-sizing: border-box; }
   body {
@@ -48,7 +54,7 @@
     font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   main {
-    max-width: 1160px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 28px 20px 60px;
     display: flex;
@@ -87,34 +93,17 @@
   }
   .upload-card h3 { margin: 0; font-size: 0.9rem; }
   .upload-card .hint { margin: 0; font-size: 0.8rem; color: var(--ink-soft); }
-  .primary-btn, .open-btn {
-    font: inherit;
-    font-weight: 600;
-    border-radius: 7px;
-    padding: 6px 16px;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    align-self: flex-start;
+  .primary-btn {
+    font: inherit; font-weight: 600; border-radius: 7px; padding: 6px 16px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    align-self: flex-start; background: var(--accent); color: var(--accent-ink);
+    border: 1px solid transparent;
   }
-  .primary-btn { background: var(--accent); color: var(--accent-ink); border: 1px solid transparent; }
   .primary-btn:hover { filter: brightness(1.08); }
-  .open-btn { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
-  .open-btn:hover { border-color: var(--ink-soft); }
   .file-status { font-size: 0.82rem; color: var(--ink-soft); }
   .file-status.ok { color: var(--ok); font-weight: 600; }
   .file-status.error { color: var(--accent); font-weight: 600; }
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface-2); }
-  .seg button {
-    font: inherit; font-size: 0.88rem; font-weight: 600;
-    color: var(--ink-soft); background: transparent; border: none;
-    padding: 6px 16px; cursor: pointer;
-  }
-  .seg button + button { border-left: 1px solid var(--line); }
-  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-  .head-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .head-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
   .head-row .spacer { flex: 1; }
   .head-row label.chk { display: inline-flex; align-items: center; gap: 7px; font-size: 0.88rem; color: var(--ink-soft); font-weight: 600; cursor: pointer; }
   input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
@@ -124,21 +113,38 @@
   }
   input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .status { font-size: 0.88rem; color: var(--ink-soft); }
-  .table-wrap { overflow-x: auto; max-height: 640px; overflow-y: auto; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    font-size: 0.82rem; color: var(--ink-soft); margin: 0 0 10px;
+  }
+  .legend .key { display: inline-flex; align-items: center; gap: 5px; }
+  .legend svg { flex: none; }
+  .table-wrap { overflow-x: auto; max-height: 620px; overflow-y: auto; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; padding: 7px 11px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th {
     font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
     color: var(--ink-soft); position: sticky; top: 0; background: var(--surface);
-    cursor: pointer; user-select: none;
+    user-select: none; z-index: 1;
   }
-  th:hover { color: var(--accent); text-decoration: underline; }
+  th[data-key] { cursor: pointer; }
+  th[data-key]:hover { color: var(--accent); text-decoration: underline; }
   th .arrow { color: var(--accent); }
-  .sort-hint { font-size: 0.8rem; color: var(--ink-soft); margin: 8px 0 0; }
   th.num, td.num { text-align: right; }
   tr:last-child td { border-bottom: none; }
+  tr.expandable { cursor: pointer; }
+  tr.expandable:hover td { background: var(--surface-2); }
+  td .caret { display: inline-block; width: 1em; color: var(--ink-soft); }
+  tr.detail-row td { background: var(--bg); padding: 8px 12px 12px 32px; }
+  table.mini { width: auto; min-width: 380px; }
+  table.mini th, table.mini td { padding: 3px 12px; font-size: 0.84rem; border-bottom: 1px solid var(--line); position: static; cursor: default; }
+  table.mini th { background: transparent; }
+  table.mini th:hover { color: var(--ink-soft); text-decoration: none; }
   .muted { color: var(--ink-soft); }
   .empty { color: var(--ink-soft); padding: 6px 2px; margin: 0; }
+  .strip-dot-hr { fill: var(--viz-hr); stroke: var(--surface); stroke-width: 1.2; }
+  .strip-dot-hit { fill: var(--viz-hit); stroke: var(--surface); stroke-width: 1.2; }
+  .strip-dot-out { fill: none; stroke: var(--ink-soft); stroke-width: 1.5; }
 </style>
 
 <main>
@@ -161,10 +167,10 @@
   <header>
     <h1>DK salaries × Savant stats</h1>
     <p>Upload the DKSalaries CSV plus CSVs downloaded from Baseball Savant searches.
-       Players are matched by name, split into batters and pitchers, and each group
-       becomes one table: salary and FPPG next to the Savant numbers. Both Savant CSV
-       shapes work — pitch-level detail files are aggregated per player, and grouped
-       stat files (group by player) are used as-is with their own columns.</p>
+       Players are matched by name into two tables — batters and pitchers — with salary
+       and FPPG beside the Savant data. Event-level files aren't averaged away: each
+       batted ball shows as a dot on an exit-velo strip, with outcome counts and tier
+       counts, and clicking a row opens the full event log.</p>
   </header>
 
   <section>
@@ -179,7 +185,7 @@
       </div>
       <div class="upload-card">
         <h3>Savant — batters</h3>
-        <p class="hint">CSV(s) from a batter search — detail or grouped-stats format.</p>
+        <p class="hint">CSV(s) from a batter search — detail (player &amp; event) or grouped-stats format.</p>
         <label class="primary-btn" for="bat-file">Upload CSV(s)</label>
         <input type="file" id="bat-file" accept=".csv,.txt" multiple hidden>
         <span class="file-status" id="bat-status">Nothing uploaded.</span>
@@ -196,25 +202,39 @@
   </section>
 
   <section>
-    <h2>Merged pool</h2>
+    <h2>Batters</h2>
     <div class="head-row">
-      <div class="seg" role="group" aria-label="Player group">
-        <button type="button" id="tab-bat" aria-pressed="true">Batters</button>
-        <button type="button" id="tab-pit" aria-pressed="false">Pitchers</button>
-      </div>
-      <input type="search" id="search" placeholder="Search player or team…">
-      <label class="chk"><input type="checkbox" id="only-matched"> Only players with Savant data</label>
+      <input type="search" id="bat-search" placeholder="Search player or team…">
+      <label class="chk"><input type="checkbox" id="bat-only"> Only with Savant data</label>
       <span class="spacer"></span>
-      <span class="status" id="count"></span>
+      <span class="status" id="bat-count"></span>
     </div>
+    <div class="legend" id="bat-legend" hidden></div>
     <div class="table-wrap">
-      <table id="pool-table" hidden>
-        <thead><tr id="pool-head"></tr></thead>
-        <tbody id="pool-body"></tbody>
+      <table id="bat-table" hidden>
+        <thead><tr id="bat-head"></tr></thead>
+        <tbody id="bat-body"></tbody>
       </table>
     </div>
-    <p class="empty" id="pool-empty">Upload the DK salaries CSV to start — Savant CSVs enrich it.</p>
-    <p class="sort-hint">Click any column header to sort; click again to reverse. The ▼/▲ arrow marks the active sort.</p>
+    <p class="empty" id="bat-empty">Upload the DK salaries CSV to start.</p>
+  </section>
+
+  <section>
+    <h2>Pitchers</h2>
+    <div class="head-row">
+      <input type="search" id="pit-search" placeholder="Search player or team…">
+      <label class="chk"><input type="checkbox" id="pit-only"> Only with Savant data</label>
+      <span class="spacer"></span>
+      <span class="status" id="pit-count"></span>
+    </div>
+    <div class="legend" id="pit-legend" hidden></div>
+    <div class="table-wrap">
+      <table id="pit-table" hidden>
+        <thead><tr id="pit-head"></tr></thead>
+        <tbody id="pit-body"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="pit-empty">Upload the DK salaries CSV to start.</p>
   </section>
 </main>
 
@@ -250,6 +270,11 @@
     return t.replace(/[^a-z ]/g, " ").split(/\s+/).filter(w => w && !SUFFIXES.has(w)).join(" ");
   }
 
+  const numVal = (v) => {
+    const n = parseFloat(String(v).replace(/[%,$]/g, ""));
+    return Number.isNaN(n) ? null : n;
+  };
+
   // ---------- DK salaries ----------
   let dk = [];
 
@@ -281,17 +306,20 @@
   const isPitcher = (p) => p.pos.split("/").some(x => ["P", "SP", "RP"].includes(x));
 
   // ---------- Savant CSVs ----------
-  // Each slot holds {mode: "detail"|"agg", cols: [{key,label}], map: nameKey → stats}.
+  // detail slot: {mode:"detail", map: nameKey → [{date,event,ev,la,dist,cls}], lo, hi}
+  // agg slot:    {mode:"agg", cols: [{key,label}], map: nameKey → {key: value}}
   const savant = { bat: null, pit: null };
 
-  const DETAIL_COLS = [
-    { key: "events", label: "Events" },
-    { key: "avgEv", label: "Avg EV" },
-    { key: "maxEv", label: "Max EV" },
-    { key: "avgLa", label: "Avg LA" },
-    { key: "avgDist", label: "Avg Dist" },
-    { key: "maxDist", label: "Max Dist" },
-  ];
+  const HIT_EVENTS = new Set(["single", "double", "triple", "home_run"]);
+  const EVENT_LABEL = {
+    home_run: "HR", triple: "3B", double: "2B", single: "1B",
+    field_out: "Out", force_out: "FO", grounded_into_double_play: "GIDP",
+    double_play: "DP", triple_play: "TP", sac_fly: "SF",
+    sac_fly_double_play: "SF DP", field_error: "E",
+    fielders_choice: "FC", fielders_choice_out: "FC",
+  };
+  const eventLabel = (e) => EVENT_LABEL[e] || (e ? e.replace(/_/g, " ") : "—");
+  const eventCls = (e) => e === "home_run" ? "hr" : HIT_EVENTS.has(e) ? "hit" : "out";
 
   const PRETTY = {
     pitches: "Pitches", total_pitches: "Pitches", pitch_percent: "Pitch%",
@@ -310,11 +338,6 @@
     if (PRETTY[slug]) return PRETTY[slug];
     return /^[a-z0-9_]+$/.test(h) ? h.replace(/_/g, " ") : h;
   }
-
-  const numVal = (v) => {
-    const n = parseFloat(String(v).replace(/[%,$]/g, ""));
-    return Number.isNaN(n) ? null : n;
-  };
 
   function parseSavant(text, store, kind) {
     const rows = csvRows(text);
@@ -336,36 +359,26 @@
       const iName = (kind === "bat" && col("batter_name") >= 0) ? col("batter_name")
                   : (kind === "pit" && col("pitcher_name") >= 0) ? col("pitcher_name")
                   : (col("player_name") >= 0 ? col("player_name") : col("player name"));
-      const iEv = col("launch_speed"), iLa = col("launch_angle"), iDist = col("hit_distance_sc");
+      const iEv = col("launch_speed"), iLa = col("launch_angle"),
+            iDist = col("hit_distance_sc"), iDate = col("game_date"), iEvent = col("events");
       store.mode = "detail";
-      store.cols = DETAIL_COLS;
-      store.raw = store.raw || new Map();
+      store.map = store.map || new Map();
       let used = 0;
       for (const r of data) {
         const name = (r[iName] || "").trim();
         if (!name) continue;
         used++;
         const key = normName(name);
-        let s = store.raw.get(key);
-        if (!s) { s = { events: 0, sumEv: 0, nEv: 0, maxEv: null, sumLa: 0, nLa: 0, sumDist: 0, nDist: 0, maxDist: null }; store.raw.set(key, s); }
-        s.events++;
-        const ev = iEv >= 0 ? numVal(r[iEv]) : null;
-        if (ev != null) { s.sumEv += ev; s.nEv++; s.maxEv = s.maxEv == null ? ev : Math.max(s.maxEv, ev); }
-        const la = iLa >= 0 ? numVal(r[iLa]) : null;
-        if (la != null) { s.sumLa += la; s.nLa++; }
-        const di = iDist >= 0 ? numVal(r[iDist]) : null;
-        if (di != null) { s.sumDist += di; s.nDist++; s.maxDist = s.maxDist == null ? di : Math.max(s.maxDist, di); }
-      }
-      // Derive display stats from accumulators.
-      store.map = new Map();
-      for (const [k, s] of store.raw) {
-        store.map.set(k, {
-          events: s.events,
-          avgEv: s.nEv ? s.sumEv / s.nEv : null,
-          maxEv: s.maxEv,
-          avgLa: s.nLa ? s.sumLa / s.nLa : null,
-          avgDist: s.nDist ? s.sumDist / s.nDist : null,
-          maxDist: s.maxDist,
+        let list = store.map.get(key);
+        if (!list) { list = []; store.map.set(key, list); }
+        const event = iEvent >= 0 ? (r[iEvent] || "").trim() : "";
+        list.push({
+          date: iDate >= 0 ? (r[iDate] || "").trim() : "",
+          event,
+          cls: eventCls(event),
+          ev: iEv >= 0 ? numVal(r[iEv]) : null,
+          la: iLa >= 0 ? numVal(r[iLa]) : null,
+          dist: iDist >= 0 ? numVal(r[iDist]) : null,
         });
       }
       if (!used) throw new Error("Savant file parsed but no data rows found.");
@@ -411,10 +424,64 @@
     return used;
   }
 
-  // ---------- merge + render ----------
-  let tab = "bat";
-  let sortKey = "salary", sortDir = -1;
+  // Events are pre-filtered hard-hit balls, so counts and tiers beat averages.
+  const DETAIL_COLS = [
+    { key: "events", label: "Events" },
+    { key: "hr", label: "HR" },
+    { key: "hits", label: "H" },
+    { key: "p105", label: "105+" },
+    { key: "p110", label: "110+" },
+    { key: "maxEv", label: "Max EV", f: 1 },
+    { key: "d400", label: "400ft+" },
+    { key: "maxDist", label: "Max Dist" },
+  ];
 
+  function detailStats(list) {
+    const s = { events: list.length, hr: 0, hits: 0, p105: 0, p110: 0, maxEv: null, d400: 0, maxDist: null };
+    for (const e of list) {
+      if (e.cls === "hr") s.hr++;
+      if (e.cls !== "out") s.hits++;
+      if (e.ev != null) {
+        if (e.ev >= 105) s.p105++;
+        if (e.ev >= 110) s.p110++;
+        s.maxEv = s.maxEv == null ? e.ev : Math.max(s.maxEv, e.ev);
+      }
+      if (e.dist != null) {
+        if (e.dist >= 400) s.d400++;
+        s.maxDist = s.maxDist == null ? e.dist : Math.max(s.maxDist, e.dist);
+      }
+    }
+    return s;
+  }
+
+  // ---------- EV strip ----------
+  const STRIP_W = 150, STRIP_H = 18;
+
+  function evStrip(list, lo, hi) {
+    const span = hi - lo || 1;
+    const dots = [...list].filter(e => e.ev != null).sort((a, b) => a.ev - b.ev);
+    let svg = "<svg width='" + STRIP_W + "' height='" + STRIP_H + "' viewBox='0 0 " + STRIP_W + " " + STRIP_H + "' role='img'>";
+    svg += "<line x1='5' y1='" + (STRIP_H / 2) + "' x2='" + (STRIP_W - 5) + "' y2='" + (STRIP_H / 2) + "' stroke='var(--line)' stroke-width='1'/>";
+    for (const e of dots) {
+      const cx = (5 + (e.ev - lo) / span * (STRIP_W - 10)).toFixed(1);
+      const r = e.cls === "hr" ? 4 : e.cls === "hit" ? 3.5 : 3.2;
+      const title = eventLabel(e.event) + " · " + e.ev.toFixed(1) + " mph" +
+        (e.dist != null ? " · " + Math.round(e.dist) + " ft" : "") + (e.date ? " · " + e.date : "");
+      svg += "<circle class='strip-dot-" + e.cls + "' cx='" + cx + "' cy='" + (STRIP_H / 2) + "' r='" + r + "'><title>" + title + "</title></circle>";
+    }
+    return svg + "</svg>";
+  }
+
+  function legendHtml(lo, hi) {
+    const dot = (cls, r) => "<svg width='14' height='14'><circle class='strip-dot-" + cls + "' cx='7' cy='7' r='" + r + "'/></svg>";
+    return "<span class='key'>" + dot("hr", 4.5) + " HR</span>" +
+           "<span class='key'>" + dot("hit", 4) + " Other hit</span>" +
+           "<span class='key'>" + dot("out", 4) + " Out</span>" +
+           "<span>EV strip runs " + Math.floor(lo) + "–" + Math.ceil(hi) + " mph, left to right</span>" +
+           "<span>· Click a row for its event log</span>";
+  }
+
+  // ---------- merge + render ----------
   const DK_COLS = [
     { key: "name", label: "Name", num: false },
     { key: "pos", label: "Pos", num: false },
@@ -424,24 +491,52 @@
     { key: "fppg", label: "FPPG", num: true },
   ];
 
-  function mergedRows() {
-    const store = savant[tab];
+  const sections = {
+    bat: { sortKey: "salary", sortDir: -1, expanded: new Set() },
+    pit: { sortKey: "salary", sortDir: -1, expanded: new Set() },
+  };
+
+  function storeRange(store) {
+    let lo = Infinity, hi = -Infinity;
+    for (const list of store.map.values())
+      for (const e of list)
+        if (e.ev != null) { lo = Math.min(lo, e.ev); hi = Math.max(hi, e.ev); }
+    if (!Number.isFinite(lo)) { lo = 95; hi = 120; }
+    if (hi - lo < 5) hi = lo + 5;
+    store.lo = lo; store.hi = hi;
+  }
+
+  function mergedRows(kind) {
+    const store = savant[kind];
     return dk
-      .filter(p => (tab === "pit") === isPitcher(p))
+      .filter(p => (kind === "pit") === isPitcher(p))
       .map(p => {
-        const s = store && store.map.get(p.key);
-        const stats = {};
-        if (store) for (const c of store.cols) stats[c.key] = s ? (s[c.key] ?? null) : null;
-        return { ...p, stats, matched: !!s };
+        let stats = {}, matched = false, events = null;
+        if (store) {
+          const s = store.map.get(p.key);
+          matched = !!s;
+          if (store.mode === "detail") {
+            events = s || null;
+            stats = s ? detailStats(s) : {};
+          } else if (s) stats = s;
+        }
+        return { ...p, stats, matched, events };
       });
   }
 
-  function shown() {
-    const q = $("search").value.trim().toLowerCase();
-    let rows = mergedRows();
-    if ($("only-matched").checked) rows = rows.filter(r => r.matched);
+  function statCols(kind) {
+    const store = savant[kind];
+    if (!store) return [];
+    return store.mode === "detail" ? DETAIL_COLS : store.cols;
+  }
+
+  function shownRows(kind) {
+    const st = sections[kind];
+    const q = $(kind + "-search").value.trim().toLowerCase();
+    let rows = mergedRows(kind);
+    if ($(kind + "-only").checked) rows = rows.filter(r => r.matched);
     if (q) rows = rows.filter(r => (r.name + " " + r.team).toLowerCase().includes(q));
-    const dir = sortDir, key = sortKey;
+    const dir = st.sortDir, key = st.sortKey;
     const get = (r) => key.startsWith("s:") ? r.stats[key.slice(2)] : r[key];
     return rows.sort((a, b) => {
       const av = get(a), bv = get(b);
@@ -452,81 +547,107 @@
   }
 
   const fmtSalary = new Intl.NumberFormat("en-US");
-  const fmtStat = (v) => v == null ? "—" : (Number.isInteger(v) ? String(v) : v.toFixed(1));
+  const fmtStat = (v, dec) => v == null ? "—"
+    : dec != null ? v.toFixed(dec)
+    : Number.isInteger(v) ? String(v) : v.toFixed(1);
 
-  function render() {
+  function render(kind) {
     if (!dk.length) return;
-    const store = savant[tab];
-    const statCols = store ? store.cols : [];
-    if (sortKey.startsWith("s:") && !statCols.some(c => "s:" + c.key === sortKey)) {
-      sortKey = "salary"; sortDir = -1;
+    const st = sections[kind];
+    const store = savant[kind];
+    const cols = statCols(kind);
+    const detail = store && store.mode === "detail";
+    if (st.sortKey.startsWith("s:") && !cols.some(c => "s:" + c.key === st.sortKey)) {
+      st.sortKey = "salary"; st.sortDir = -1;
     }
 
-    const headTr = $("pool-head");
+    const legend = $(kind + "-legend");
+    legend.hidden = !detail;
+    if (detail) legend.innerHTML = legendHtml(store.lo, store.hi);
+
+    const headTr = $(kind + "-head");
     headTr.innerHTML = "";
-    for (const c of DK_COLS) {
+    for (const c of DK_COLS.concat(cols)) {
       const th = document.createElement("th");
-      th.dataset.key = c.key;
-      if (c.num) th.className = "num";
+      const isStat = cols.includes(c);
+      th.dataset.key = isStat ? "s:" + c.key : c.key;
+      if (isStat || c.num) th.className = "num";
       th.textContent = c.label;
+      if (th.dataset.key === st.sortKey)
+        th.innerHTML = c.label + " <span class='arrow'>" + (st.sortDir === 1 ? "▲" : "▼") + "</span>";
       headTr.appendChild(th);
     }
-    for (const c of statCols) {
+    if (detail) {
       const th = document.createElement("th");
-      th.dataset.key = "s:" + c.key;
-      th.className = "num";
-      th.textContent = c.label;
+      th.textContent = "EV strip";
       headTr.appendChild(th);
     }
-    for (const th of headTr.children) {
-      if (th.dataset.key === sortKey)
-        th.innerHTML = th.textContent + " <span class='arrow'>" + (sortDir === 1 ? "▲" : "▼") + "</span>";
-    }
+    const nCols = headTr.children.length;
 
-    const rows = shown();
-    const total = mergedRows();
+    const rows = shownRows(kind);
+    const total = mergedRows(kind);
     const matched = total.filter(r => r.matched).length;
-    const body = $("pool-body");
+    const body = $(kind + "-body");
     body.innerHTML = "";
     for (const r of rows) {
       const tr = document.createElement("tr");
+      const expandable = detail && r.matched;
+      const open = expandable && st.expanded.has(r.key);
+      if (expandable) tr.className = "expandable";
       let html =
-        "<td>" + r.name + "</td>" +
+        "<td>" + (expandable ? "<span class='caret'>" + (open ? "▾" : "▸") + "</span>" : detail ? "<span class='caret'></span>" : "") + r.name + "</td>" +
         "<td>" + r.pos + "</td>" +
         "<td class='num'>$" + fmtSalary.format(r.salary) + "</td>" +
         "<td>" + r.team + "</td>" +
         "<td class='muted'>" + r.game + "</td>" +
         "<td class='num'>" + (r.fppg == null ? "—" : r.fppg.toFixed(2)) + "</td>";
-      for (const c of statCols) html += "<td class='num'>" + fmtStat(r.stats[c.key]) + "</td>";
+      for (const c of cols) html += "<td class='num'>" + fmtStat(r.stats[c.key], c.f) + "</td>";
+      if (detail) html += "<td>" + (r.events ? evStrip(r.events, store.lo, store.hi) : "") + "</td>";
       tr.innerHTML = html;
+      if (expandable) tr.addEventListener("click", () => {
+        st.expanded.has(r.key) ? st.expanded.delete(r.key) : st.expanded.add(r.key);
+        render(kind);
+      });
       body.appendChild(tr);
+
+      if (open) {
+        const dtr = document.createElement("tr");
+        dtr.className = "detail-row";
+        const evs = [...r.events].sort((a, b) => (b.ev ?? -1) - (a.ev ?? -1));
+        let mini = "<table class='mini'><thead><tr><th>Date</th><th>Result</th><th class='num'>EV</th><th class='num'>LA</th><th class='num'>Dist</th></tr></thead><tbody>";
+        for (const e of evs) {
+          mini += "<tr><td class='muted'>" + (e.date || "—") + "</td><td>" + eventLabel(e.event) + "</td>" +
+            "<td class='num'>" + (e.ev == null ? "—" : e.ev.toFixed(1)) + "</td>" +
+            "<td class='num'>" + (e.la == null ? "—" : e.la.toFixed(0)) + "</td>" +
+            "<td class='num'>" + (e.dist == null ? "—" : Math.round(e.dist)) + "</td></tr>";
+        }
+        mini += "</tbody></table>";
+        dtr.innerHTML = "<td colspan='" + nCols + "'>" + mini + "</td>";
+        body.appendChild(dtr);
+      }
     }
-    $("pool-table").hidden = rows.length === 0;
-    $("pool-empty").hidden = rows.length > 0;
-    $("pool-empty").textContent = "No players match the filters.";
-    $("count").textContent = rows.length + " of " + total.length + " shown · " + matched + " with Savant data";
+    $(kind + "-table").hidden = rows.length === 0;
+    $(kind + "-empty").hidden = rows.length > 0;
+    $(kind + "-empty").textContent = "No players match the filters.";
+    $(kind + "-count").textContent = rows.length + " of " + total.length + " shown · " + matched + " with Savant data";
   }
 
-  function setTab(t) {
-    tab = t;
-    $("tab-bat").setAttribute("aria-pressed", String(t === "bat"));
-    $("tab-pit").setAttribute("aria-pressed", String(t === "pit"));
-    render();
+  const renderAll = () => { render("bat"); render("pit"); };
+
+  for (const kind of ["bat", "pit"]) {
+    $(kind + "-search").addEventListener("input", () => render(kind));
+    $(kind + "-only").addEventListener("change", () => render(kind));
+    document.querySelector("#" + kind + "-table thead").addEventListener("click", (e) => {
+      const th = e.target.closest("th");
+      if (!th || !th.dataset.key) return;
+      const st = sections[kind];
+      if (st.sortKey === th.dataset.key) st.sortDir = -st.sortDir;
+      else { st.sortKey = th.dataset.key; st.sortDir = th.classList.contains("num") ? -1 : 1; }
+      render(kind);
+    });
   }
-  $("tab-bat").addEventListener("click", () => setTab("bat"));
-  $("tab-pit").addEventListener("click", () => setTab("pit"));
 
-  document.querySelector("#pool-table thead").addEventListener("click", (e) => {
-    const th = e.target.closest("th");
-    if (!th || !th.dataset.key) return;
-    if (sortKey === th.dataset.key) sortDir = -sortDir;
-    else { sortKey = th.dataset.key; sortDir = th.classList.contains("num") ? -1 : 1; }
-    render();
-  });
-
-  $("search").addEventListener("input", render);
-  $("only-matched").addEventListener("change", render);
-
+  // ---------- uploads ----------
   function fileStatus(id, msg, cls) {
     const el = $(id);
     el.textContent = msg;
@@ -539,7 +660,7 @@
     try {
       parseDk(await file.text());
       fileStatus("dk-status", file.name + " — " + dk.length + " players.", "ok");
-      render();
+      renderAll();
     } catch (err) {
       fileStatus("dk-status", file.name + ": " + err.message, "error");
     }
@@ -549,14 +670,16 @@
   async function savantUpload(e, kind, statusId) {
     const files = [...e.target.files];
     if (!files.length) return;
-    const store = { mode: null, cols: null, map: null, raw: null };
+    const store = { mode: null, cols: null, map: null };
     let rows = 0;
     try {
       for (const f of files) rows += parseSavant(await f.text(), store, kind);
+      if (store.mode === "detail") storeRange(store);
       savant[kind] = store;
+      sections[kind].expanded.clear();
       fileStatus(statusId, files.map(f => f.name).join(", ") + " — " +
-        (store.mode === "agg" ? store.map.size + " players (grouped stats)." : rows + " rows, " + store.map.size + " players."), "ok");
-      render();
+        (store.mode === "agg" ? store.map.size + " players (grouped stats)." : rows + " events, " + store.map.size + " players."), "ok");
+      render(kind);
     } catch (err) {
       fileStatus(statusId, err.message, "error");
     }

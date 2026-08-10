@@ -38,12 +38,17 @@ JSON blobs and pasted text work too.
 
 ## Merge
 
-`merge.html` joins a DKSalaries CSV with Baseball Savant `statcast_search` detail CSVs
-(from the Savant links page's Download CSV button). Savant rows are aggregated per
-player — events, avg/max exit velocity, avg launch angle, avg/max distance — then
-matched to DK players by normalized name (handles `Last, First` vs `First Last`,
-accents, and Jr./II suffixes). Separate upload slots for batter and pitcher searches
-feed two tables, Batters and Pitchers, showing salary and FPPG beside the Statcast
-stats, with search, an only-matched filter, and sortable columns. Parameter names and encoding (`hfGT`, `hfSea`, `hfTeam`,
+`merge.html` joins a DKSalaries CSV with Baseball Savant `statcast_search` CSVs,
+matched by normalized name (handles `Last, First` vs `First Last`, accents, and
+Jr./II suffixes), into two always-visible tables — Batters and Pitchers — each with
+its own search, only-matched filter, and sortable columns.
+
+Detail CSVs (player & event searches) are not averaged away: because those searches
+already filter to hard-hit balls, each player row shows counts and tiers — events,
+HR, hits, 105+/110+ EV counts, max EV, 400ft+ balls, max distance — plus an EV dot
+strip (every batted ball positioned by exit velo; HR filled accent, other hits filled
+blue, outs hollow), and clicking a row opens the full event log (date, result, EV,
+LA, distance). Grouped-stats CSVs (group by player, e.g. the pitcher stat search) are
+used as-is with their numeric columns carried into the table dynamically. Parameter names and encoding (`hfGT`, `hfSea`, `hfTeam`,
 `hfFlag`, `metric_1`, …) match the original template link byte-for-byte, so the
 search behaves identically on baseballsavant.mlb.com.
