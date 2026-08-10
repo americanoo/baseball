@@ -1,0 +1,442 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Savant Link Generator</title>
+<style>
+  :root {
+    --bg: #F2F4F8;
+    --surface: #FFFFFF;
+    --surface-2: #E9EDF3;
+    --ink: #182741;
+    --ink-soft: #51617C;
+    --line: #D4DBE6;
+    --accent: #C8102E;
+    --accent-ink: #FFFFFF;
+    --focus: #1D4ED8;
+    --url-bg: #0F1826;
+    --url-ink: #D5E2F5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #131B28;
+      --surface: #1C2637;
+      --surface-2: #243044;
+      --ink: #E7ECF4;
+      --ink-soft: #9AA9C0;
+      --line: #32405A;
+      --accent: #F2586E;
+      --accent-ink: #1A0508;
+      --focus: #7FA6FF;
+      --url-bg: #0D141F;
+      --url-ink: #C8D7EE;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #131B28;
+    --surface: #1C2637;
+    --surface-2: #243044;
+    --ink: #E7ECF4;
+    --ink-soft: #9AA9C0;
+    --line: #32405A;
+    --accent: #F2586E;
+    --accent-ink: #1A0508;
+    --focus: #7FA6FF;
+    --url-bg: #0D141F;
+    --url-ink: #C8D7EE;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.45rem;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  header p {
+    margin: 6px 0 0;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+  fieldset {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 16px 18px 18px;
+    margin: 0;
+  }
+  legend {
+    padding: 0 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 22px;
+    align-items: flex-end;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field > span {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  input[type="text"], input[type="number"], input[type="date"], select {
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 7px 10px;
+    min-width: 9.5em;
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 2px;
+    cursor: pointer;
+  }
+  input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+  .teams-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .teams-head .count { color: var(--ink-soft); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  .teams-head .spacer { flex: 1; }
+  .ghost-btn {
+    font: inherit;
+    font-size: 0.82rem;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 4px 12px;
+    cursor: pointer;
+  }
+  .ghost-btn:hover { border-color: var(--ink-soft); }
+  .divisions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+  .division h3 {
+    margin: 0 0 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .division .check { display: flex; padding: 3px 2px; }
+  .division .abbr {
+    font-weight: 700;
+    font-size: 0.8rem;
+    min-width: 2.6em;
+    font-variant-numeric: tabular-nums;
+  }
+  .division .name { color: var(--ink-soft); font-size: 0.86rem; }
+  .output {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -6px 24px rgba(10, 20, 40, 0.10);
+  }
+  .output-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 12px 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .output-inner .bar { display: flex; gap: 10px; align-items: center; }
+  .output-inner .bar span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    flex: 1;
+  }
+  #url-box {
+    display: block;
+    width: 100%;
+    max-height: 72px;
+    overflow: auto;
+    background: var(--url-bg);
+    color: var(--url-ink);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    word-break: break-all;
+    white-space: pre-wrap;
+    margin: 0;
+  }
+  .primary-btn, .open-btn {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 7px;
+    padding: 6px 16px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+  }
+  .primary-btn {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 1px solid transparent;
+  }
+  .primary-btn:hover { filter: brightness(1.08); }
+  .open-btn {
+    background: var(--surface-2);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .open-btn:hover { border-color: var(--ink-soft); }
+  @media (prefers-reduced-motion: no-preference) {
+    .primary-btn { transition: filter 120ms ease; }
+  }
+</style>
+
+<main>
+  <header>
+    <h1>Baseball Savant link generator</h1>
+    <p>Fill in the variables below; the Statcast search link updates as you go,
+       using the same parameters and encoding as your saved template.</p>
+  </header>
+
+  <fieldset>
+    <legend>Search window</legend>
+    <div class="row">
+      <label class="field"><span>Season</span>
+        <input type="number" id="season" value="2026" min="2008" max="2100" step="1">
+      </label>
+      <label class="field"><span>Game type</span>
+        <select id="game-type">
+          <option value="R" selected>Regular season</option>
+          <option value="F">Wild Card</option>
+          <option value="D">Division Series</option>
+          <option value="L">League Championship</option>
+          <option value="W">World Series</option>
+          <option value="S">Spring Training</option>
+        </select>
+      </label>
+      <label class="field"><span>Player type</span>
+        <select id="player-type">
+          <option value="batter" selected>Batter</option>
+          <option value="pitcher">Pitcher</option>
+        </select>
+      </label>
+      <label class="field"><span>Games on or after</span>
+        <input type="date" id="date-gt" value="2026-08-02">
+      </label>
+      <label class="field"><span>Games on or before (optional)</span>
+        <input type="date" id="date-lt">
+      </label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Teams</legend>
+    <div class="teams-head">
+      <span class="count"><b id="team-count">20</b> of 30 selected</span>
+      <span class="spacer"></span>
+      <button type="button" class="ghost-btn" id="teams-all">All</button>
+      <button type="button" class="ghost-btn" id="teams-none">None</button>
+      <button type="button" class="ghost-btn" id="teams-template">Template 20</button>
+    </div>
+    <div class="divisions" id="divisions"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Batted-ball filter</legend>
+    <div class="row">
+      <label class="field"><span>Metric</span>
+        <select id="metric">
+          <option value="api_h_launch_speed" selected>Exit velocity (mph)</option>
+          <option value="api_h_launch_angle">Launch angle (°)</option>
+          <option value="api_h_distance_projected">Projected distance (ft)</option>
+          <option value="">No metric filter</option>
+        </select>
+      </label>
+      <label class="field"><span>Minimum (≥)</span>
+        <input type="number" id="metric-gt" value="95" step="any">
+      </label>
+      <label class="field"><span>Maximum (≤, optional)</span>
+        <input type="number" id="metric-lt" step="any">
+      </label>
+      <label class="check"><input type="checkbox" id="no-bunts" checked> Exclude bunts</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Results</legend>
+    <div class="row">
+      <label class="field"><span>Group by</span>
+        <select id="group-by">
+          <option value="name-event" selected>Player &amp; event</option>
+          <option value="name">Player</option>
+          <option value="name-date">Player &amp; date</option>
+          <option value="team">Team</option>
+        </select>
+      </label>
+      <label class="field"><span>Sort by</span>
+        <select id="sort-by">
+          <option value="api_h_distance_projected" selected>Projected distance</option>
+          <option value="api_h_launch_speed">Exit velocity</option>
+          <option value="api_h_launch_angle">Launch angle</option>
+        </select>
+      </label>
+      <label class="field"><span>Order</span>
+        <select id="sort-order">
+          <option value="desc" selected>Descending</option>
+          <option value="asc">Ascending</option>
+        </select>
+      </label>
+    </div>
+  </fieldset>
+</main>
+
+<div class="output">
+  <div class="output-inner">
+    <div class="bar">
+      <span>Generated link</span>
+      <button type="button" class="primary-btn" id="copy-btn">Copy link</button>
+      <a class="open-btn" id="open-link" href="#" target="_blank" rel="noopener">Open in Savant</a>
+    </div>
+    <pre id="url-box"></pre>
+  </div>
+</div>
+
+<script>
+  const TEAMS = [
+    ["AL East", [[110,"BAL","Orioles"],[111,"BOS","Red Sox"],[147,"NYY","Yankees"],[139,"TB","Rays"],[141,"TOR","Blue Jays"]]],
+    ["AL Central", [[145,"CWS","White Sox"],[114,"CLE","Guardians"],[116,"DET","Tigers"],[118,"KC","Royals"],[142,"MIN","Twins"]]],
+    ["AL West", [[117,"HOU","Astros"],[108,"LAA","Angels"],[133,"ATH","Athletics"],[136,"SEA","Mariners"],[140,"TEX","Rangers"]]],
+    ["NL East", [[144,"ATL","Braves"],[146,"MIA","Marlins"],[121,"NYM","Mets"],[143,"PHI","Phillies"],[120,"WSH","Nationals"]]],
+    ["NL Central", [[112,"CHC","Cubs"],[113,"CIN","Reds"],[158,"MIL","Brewers"],[134,"PIT","Pirates"],[138,"STL","Cardinals"]]],
+    ["NL West", [[109,"ARI","D-backs"],[115,"COL","Rockies"],[119,"LAD","Dodgers"],[135,"SD","Padres"],[137,"SF","Giants"]]],
+  ];
+  // The 20 teams checked in the original template link, in its hfTeam order.
+  const TEMPLATE_TEAMS = [141,110,139,111,118,142,108,117,133,140,144,121,143,158,138,109,119,137,135,115];
+
+  const divisionsEl = document.getElementById("divisions");
+  for (const [division, teams] of TEAMS) {
+    const box = document.createElement("div");
+    box.className = "division";
+    const h = document.createElement("h3");
+    h.textContent = division;
+    box.appendChild(h);
+    for (const [id, abbr, name] of teams) {
+      const label = document.createElement("label");
+      label.className = "check";
+      label.innerHTML =
+        '<input type="checkbox" class="team" value="' + id + '"' +
+        (TEMPLATE_TEAMS.includes(id) ? " checked" : "") + ">" +
+        '<span class="abbr">' + abbr + '</span><span class="name">' + name + "</span>";
+      box.appendChild(label);
+    }
+    divisionsEl.appendChild(box);
+  }
+
+  const $ = (id) => document.getElementById(id);
+  const teamBoxes = () => [...document.querySelectorAll("input.team")];
+
+  function buildUrl() {
+    const params = [];
+    const add = (k, v) => params.push(k + "=" + encodeURIComponent(v));
+
+    add("hfGT", $("game-type").value + "|");
+    add("hfSea", $("season").value + "|");
+    add("player_type", $("player-type").value);
+    if ($("date-gt").value) add("game_date_gt", $("date-gt").value);
+    if ($("date-lt").value) add("game_date_lt", $("date-lt").value);
+
+    const checked = teamBoxes().filter(b => b.checked).map(b => b.value);
+    $("team-count").textContent = checked.length;
+    if (checked.length > 0 && checked.length < 30) add("hfTeam", checked.join("|") + "|");
+
+    if ($("no-bunts").checked) add("hfFlag", "is\\.\\.bunt\\.\\.not|");
+
+    const metric = $("metric").value;
+    if (metric && ($("metric-gt").value !== "" || $("metric-lt").value !== "")) {
+      add("metric_1", metric);
+      if ($("metric-gt").value !== "") add("metric_1_gt", $("metric-gt").value);
+      if ($("metric-lt").value !== "") add("metric_1_lt", $("metric-lt").value);
+    }
+
+    add("group_by", $("group-by").value);
+    add("min_pitches", "0");
+    add("min_results", "0");
+    add("min_pas", "0");
+    add("player_event_sort", $("sort-by").value);
+    add("sort_order", $("sort-order").value);
+    add("chk_event_launch_speed", "on");
+    add("chk_event_launch_angle", "on");
+    add("chk_event_hit_distance_sc", "on");
+
+    return "https://baseballsavant.mlb.com/statcast_search?" + params.join("&") + "#results";
+  }
+
+  function refresh() {
+    const url = buildUrl();
+    $("url-box").textContent = url;
+    $("open-link").href = url;
+  }
+
+  document.querySelector("main").addEventListener("input", refresh);
+  divisionsEl.addEventListener("change", refresh);
+
+  function setTeams(pick) {
+    teamBoxes().forEach(b => { b.checked = pick(Number(b.value)); });
+    refresh();
+  }
+  $("teams-all").addEventListener("click", () => setTeams(() => true));
+  $("teams-none").addEventListener("click", () => setTeams(() => false));
+  $("teams-template").addEventListener("click", () => setTeams(id => TEMPLATE_TEAMS.includes(id)));
+
+  $("copy-btn").addEventListener("click", async () => {
+    const url = $("url-box").textContent;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents($("url-box"));
+      const sel = getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.execCommand("copy");
+      sel.removeAllRanges();
+    }
+    const btn = $("copy-btn");
+    btn.textContent = "Copied";
+    setTimeout(() => { btn.textContent = "Copy link"; }, 1200);
+  });
+
+  refresh();
+</script>
