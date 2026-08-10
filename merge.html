@@ -1,0 +1,457 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merge — DK Salaries × Savant Stats</title>
+<style>
+  :root {
+    --bg: #F2F4F8;
+    --surface: #FFFFFF;
+    --surface-2: #E9EDF3;
+    --ink: #182741;
+    --ink-soft: #51617C;
+    --line: #D4DBE6;
+    --accent: #C8102E;
+    --accent-ink: #FFFFFF;
+    --focus: #1D4ED8;
+    --ok: #1B7F4B;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #131B28;
+      --surface: #1C2637;
+      --surface-2: #243044;
+      --ink: #E7ECF4;
+      --ink-soft: #9AA9C0;
+      --line: #32405A;
+      --accent: #F2586E;
+      --accent-ink: #1A0508;
+      --focus: #7FA6FF;
+      --ok: #4CC98A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #131B28;
+    --surface: #1C2637;
+    --surface-2: #243044;
+    --ink: #E7ECF4;
+    --ink-soft: #9AA9C0;
+    --line: #32405A;
+    --accent: #F2586E;
+    --accent-ink: #1A0508;
+    --focus: #7FA6FF;
+    --ok: #4CC98A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  nav { display: flex; gap: 14px; font-size: 0.85rem; }
+  nav a { color: var(--ink-soft); text-decoration: none; font-weight: 600; }
+  nav a[aria-current="page"] { color: var(--accent); }
+  nav a:hover { text-decoration: underline; }
+  header h1 { margin: 0; font-size: 1.45rem; letter-spacing: -0.01em; text-wrap: balance; }
+  header p { margin: 6px 0 0; color: var(--ink-soft); max-width: 70ch; }
+  section {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 16px 18px 18px;
+  }
+  section > h2 {
+    margin: 0 0 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .uploads { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .upload-card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .upload-card h3 { margin: 0; font-size: 0.9rem; }
+  .upload-card .hint { margin: 0; font-size: 0.8rem; color: var(--ink-soft); }
+  .primary-btn, .open-btn {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 7px;
+    padding: 6px 16px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+  }
+  .primary-btn { background: var(--accent); color: var(--accent-ink); border: 1px solid transparent; }
+  .primary-btn:hover { filter: brightness(1.08); }
+  .open-btn { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+  .open-btn:hover { border-color: var(--ink-soft); }
+  .file-status { font-size: 0.82rem; color: var(--ink-soft); }
+  .file-status.ok { color: var(--ok); font-weight: 600; }
+  .file-status.error { color: var(--accent); font-weight: 600; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface-2); }
+  .seg button {
+    font: inherit; font-size: 0.88rem; font-weight: 600;
+    color: var(--ink-soft); background: transparent; border: none;
+    padding: 6px 16px; cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .head-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .head-row .spacer { flex: 1; }
+  .head-row label.chk { display: inline-flex; align-items: center; gap: 7px; font-size: 0.88rem; color: var(--ink-soft); font-weight: 600; cursor: pointer; }
+  input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+  input[type="search"] {
+    font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 7px; padding: 7px 10px;
+  }
+  input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .status { font-size: 0.88rem; color: var(--ink-soft); }
+  .table-wrap { overflow-x: auto; max-height: 640px; overflow-y: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 7px 11px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--ink-soft); position: sticky; top: 0; background: var(--surface);
+    cursor: pointer; user-select: none;
+  }
+  th .arrow { color: var(--accent); }
+  th.num, td.num { text-align: right; }
+  tr:last-child td { border-bottom: none; }
+  .muted { color: var(--ink-soft); }
+  .empty { color: var(--ink-soft); padding: 6px 2px; margin: 0; }
+</style>
+
+<main>
+  <nav>
+    <a href="savant-link-generator.html" id="nav-savant">Savant links</a>
+    <a href="build.html" id="nav-build">DK build</a>
+    <a href="merge.html" aria-current="page">Merge</a>
+  </nav>
+  <script>
+    // Relative links only resolve when the pages sit side by side on disk;
+    // hosted contexts (Claude artifacts, panel previews) need the artifact URLs.
+    if (location.protocol !== "file:") {
+      document.getElementById("nav-savant").href =
+        "https://claude.ai/code/artifact/b7e4d5a7-944e-475d-957d-ffca7f3a3ac0";
+      document.getElementById("nav-build").href =
+        "https://claude.ai/code/artifact/9c7a7265-a1ae-4694-b1eb-b5fa296003d9";
+    }
+  </script>
+
+  <header>
+    <h1>DK salaries × Savant stats</h1>
+    <p>Upload the DKSalaries CSV plus the detail CSVs downloaded from the Savant links
+       page. Players are matched by name, split into batters and pitchers, and each
+       group becomes one table: salary and FPPG next to aggregated Statcast numbers
+       (events, exit velocity, launch angle, distance).</p>
+  </header>
+
+  <section>
+    <h2>Uploads</h2>
+    <div class="uploads">
+      <div class="upload-card">
+        <h3>DK salaries</h3>
+        <p class="hint">DKSalaries.csv from any contest on the slate.</p>
+        <label class="primary-btn" for="dk-file">Upload CSV</label>
+        <input type="file" id="dk-file" accept=".csv,.txt" hidden>
+        <span class="file-status" id="dk-status">Nothing uploaded.</span>
+      </div>
+      <div class="upload-card">
+        <h3>Savant — batters</h3>
+        <p class="hint">Detail CSV(s) from a batter search. Multiple files add together.</p>
+        <label class="primary-btn" for="bat-file">Upload CSV(s)</label>
+        <input type="file" id="bat-file" accept=".csv,.txt" multiple hidden>
+        <span class="file-status" id="bat-status">Nothing uploaded.</span>
+      </div>
+      <div class="upload-card">
+        <h3>Savant — pitchers</h3>
+        <p class="hint">Detail CSV(s) from a pitcher search. Multiple files add together.</p>
+        <label class="primary-btn" for="pit-file">Upload CSV(s)</label>
+        <input type="file" id="pit-file" accept=".csv,.txt" multiple hidden>
+        <span class="file-status" id="pit-status">Nothing uploaded.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Merged pool</h2>
+    <div class="head-row">
+      <div class="seg" role="group" aria-label="Player group">
+        <button type="button" id="tab-bat" aria-pressed="true">Batters</button>
+        <button type="button" id="tab-pit" aria-pressed="false">Pitchers</button>
+      </div>
+      <input type="search" id="search" placeholder="Search player or team…">
+      <label class="chk"><input type="checkbox" id="only-matched"> Only players with Savant data</label>
+      <span class="spacer"></span>
+      <span class="status" id="count"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="pool-table" hidden>
+        <thead><tr>
+          <th data-key="name">Name</th>
+          <th data-key="pos">Pos</th>
+          <th data-key="salary" class="num">Salary</th>
+          <th data-key="team">Team</th>
+          <th data-key="game">Game</th>
+          <th data-key="fppg" class="num">FPPG</th>
+          <th data-key="events" class="num">Events</th>
+          <th data-key="avgEv" class="num">Avg EV</th>
+          <th data-key="maxEv" class="num">Max EV</th>
+          <th data-key="avgLa" class="num">Avg LA</th>
+          <th data-key="avgDist" class="num">Avg Dist</th>
+          <th data-key="maxDist" class="num">Max Dist</th>
+        </tr></thead>
+        <tbody id="pool-body"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="pool-empty">Upload the DK salaries CSV to start — Savant CSVs enrich it.</p>
+  </section>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- shared CSV parsing ----------
+  function csvRows(text) {
+    const rows = [];
+    let field = "", row = [], inQ = false;
+    const pushF = () => { row.push(field); field = ""; };
+    const pushR = () => { if (row.some(c => c.trim() !== "")) rows.push(row); row = []; };
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQ) {
+        if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+        else field += c;
+      } else if (c === '"') inQ = true;
+      else if (c === ",") pushF();
+      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; pushF(); pushR(); }
+      else field += c;
+    }
+    if (field !== "" || row.length) { pushF(); pushR(); }
+    return rows;
+  }
+
+  // "Guerrero Jr., Vladimir" / "Vladimir Guerrero Jr." → "vladimir guerrero"
+  const SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
+  function normName(s) {
+    let t = String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const comma = t.indexOf(",");
+    if (comma >= 0) t = t.slice(comma + 1) + " " + t.slice(0, comma);
+    return t.replace(/[^a-z ]/g, " ").split(/\s+/).filter(w => w && !SUFFIXES.has(w)).join(" ");
+  }
+
+  // ---------- DK salaries ----------
+  let dk = [];
+
+  function parseDk(text) {
+    const rows = csvRows(text);
+    // DK's bulk-entry template pads the player table to the right of the roster
+    // grid and puts instructions above it, so locate the header row anywhere.
+    const hIdx = rows.findIndex(r => {
+      const low = r.map(c => c.trim().toLowerCase());
+      return low.includes("name") && low.includes("salary");
+    });
+    if (hIdx < 0) throw new Error("No DK header row found (need Name and Salary columns).");
+    const head = rows[hIdx].map(h => h.trim().toLowerCase());
+    const col = (n) => head.indexOf(n);
+    const iName = col("name"), iPos = col("position"), iSal = col("salary"),
+          iGame = col("game info"), iTeam = col("teamabbrev"), iFppg = col("avgpointspergame");
+    dk = rows.slice(hIdx + 1).filter(r => (r[iName] || "").trim()).map(r => ({
+      name: r[iName].trim(),
+      key: normName(r[iName]),
+      pos: iPos >= 0 ? (r[iPos] || "").trim() : "",
+      salary: iSal >= 0 ? Number(r[iSal]) || 0 : 0,
+      team: iTeam >= 0 ? (r[iTeam] || "").trim() : "",
+      game: iGame >= 0 ? ((r[iGame] || "").split(" ")[0]) : "",
+      fppg: iFppg >= 0 ? Number(r[iFppg]) || 0 : null,
+    }));
+    if (!dk.length) throw new Error("DK file parsed but no player rows found.");
+  }
+
+  const isPitcher = (p) => p.pos.split("/").some(x => ["P", "SP", "RP"].includes(x));
+
+  // ---------- Savant detail CSVs ----------
+  const savant = { bat: new Map(), pit: new Map() };
+
+  function parseSavant(text, kind) {
+    const rows = csvRows(text);
+    const hIdx = rows.findIndex(r => r.map(c => c.trim().toLowerCase()).includes("player_name"));
+    if (hIdx < 0) throw new Error("No player_name column — expected a Savant statcast_search CSV.");
+    const head = rows[hIdx].map(h => h.trim().toLowerCase());
+    const col = (n) => head.indexOf(n);
+    // Prefer an explicit batter/pitcher name column when Savant provides one.
+    const iName = (kind === "bat" && col("batter_name") >= 0) ? col("batter_name")
+                : (kind === "pit" && col("pitcher_name") >= 0) ? col("pitcher_name")
+                : col("player_name");
+    const iEv = col("launch_speed"), iLa = col("launch_angle"), iDist = col("hit_distance_sc");
+    const map = savant[kind];
+    let used = 0;
+    for (const r of rows.slice(hIdx + 1)) {
+      const name = (r[iName] || "").trim();
+      if (!name) continue;
+      used++;
+      const key = normName(name);
+      let s = map.get(key);
+      if (!s) { s = { events: 0, sumEv: 0, nEv: 0, maxEv: null, sumLa: 0, nLa: 0, sumDist: 0, nDist: 0, maxDist: null }; map.set(key, s); }
+      s.events++;
+      const ev = iEv >= 0 ? parseFloat(r[iEv]) : NaN;
+      if (!Number.isNaN(ev)) { s.sumEv += ev; s.nEv++; s.maxEv = s.maxEv == null ? ev : Math.max(s.maxEv, ev); }
+      const la = iLa >= 0 ? parseFloat(r[iLa]) : NaN;
+      if (!Number.isNaN(la)) { s.sumLa += la; s.nLa++; }
+      const di = iDist >= 0 ? parseFloat(r[iDist]) : NaN;
+      if (!Number.isNaN(di)) { s.sumDist += di; s.nDist++; s.maxDist = s.maxDist == null ? di : Math.max(s.maxDist, di); }
+    }
+    if (!used) throw new Error("Savant file parsed but no data rows found.");
+    return used;
+  }
+
+  // ---------- merge + render ----------
+  let tab = "bat";
+  let sortKey = "salary", sortDir = -1;
+
+  function mergedRows() {
+    const map = savant[tab];
+    return dk
+      .filter(p => (tab === "pit") === isPitcher(p))
+      .map(p => {
+        const s = map.get(p.key);
+        return {
+          ...p,
+          events: s ? s.events : null,
+          avgEv: s && s.nEv ? s.sumEv / s.nEv : null,
+          maxEv: s ? s.maxEv : null,
+          avgLa: s && s.nLa ? s.sumLa / s.nLa : null,
+          avgDist: s && s.nDist ? s.sumDist / s.nDist : null,
+          maxDist: s ? s.maxDist : null,
+        };
+      });
+  }
+
+  function shown() {
+    const q = $("search").value.trim().toLowerCase();
+    let rows = mergedRows();
+    if ($("only-matched").checked) rows = rows.filter(r => r.events != null);
+    if (q) rows = rows.filter(r => (r.name + " " + r.team).toLowerCase().includes(q));
+    const dir = sortDir, key = sortKey;
+    return rows.sort((a, b) => {
+      const av = a[key], bv = b[key];
+      if (typeof av === "number" || typeof bv === "number" || av == null || bv == null)
+        return dir * (((av ?? -Infinity)) - ((bv ?? -Infinity)));
+      return dir * String(av).localeCompare(String(bv));
+    });
+  }
+
+  const fmtSalary = new Intl.NumberFormat("en-US");
+  const f1 = (v) => v == null ? "—" : v.toFixed(1);
+  const f0 = (v) => v == null ? "—" : String(Math.round(v));
+
+  function render() {
+    if (!dk.length) return;
+    const rows = shown();
+    const total = mergedRows();
+    const matched = total.filter(r => r.events != null).length;
+    const body = $("pool-body");
+    body.innerHTML = "";
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + r.name + "</td>" +
+        "<td>" + r.pos + "</td>" +
+        "<td class='num'>$" + fmtSalary.format(r.salary) + "</td>" +
+        "<td>" + r.team + "</td>" +
+        "<td class='muted'>" + r.game + "</td>" +
+        "<td class='num'>" + (r.fppg == null ? "—" : r.fppg.toFixed(2)) + "</td>" +
+        "<td class='num'>" + (r.events == null ? "—" : r.events) + "</td>" +
+        "<td class='num'>" + f1(r.avgEv) + "</td>" +
+        "<td class='num'>" + f1(r.maxEv) + "</td>" +
+        "<td class='num'>" + f1(r.avgLa) + "</td>" +
+        "<td class='num'>" + f0(r.avgDist) + "</td>" +
+        "<td class='num'>" + f0(r.maxDist) + "</td>";
+      body.appendChild(tr);
+    }
+    $("pool-table").hidden = rows.length === 0;
+    $("pool-empty").hidden = rows.length > 0;
+    $("pool-empty").textContent = "No players match the filters.";
+    $("count").textContent = rows.length + " of " + total.length + " shown · " + matched + " with Savant data";
+    for (const th of document.querySelectorAll("#pool-table th")) {
+      const base = th.textContent.replace(/ [▲▼]$/, "");
+      th.innerHTML = th.dataset.key === sortKey
+        ? base + " <span class='arrow'>" + (sortDir === 1 ? "▲" : "▼") + "</span>"
+        : base;
+    }
+  }
+
+  function setTab(t) {
+    tab = t;
+    $("tab-bat").setAttribute("aria-pressed", String(t === "bat"));
+    $("tab-pit").setAttribute("aria-pressed", String(t === "pit"));
+    render();
+  }
+  $("tab-bat").addEventListener("click", () => setTab("bat"));
+  $("tab-pit").addEventListener("click", () => setTab("pit"));
+
+  document.querySelector("#pool-table thead").addEventListener("click", (e) => {
+    const th = e.target.closest("th");
+    if (!th || !th.dataset.key) return;
+    if (sortKey === th.dataset.key) sortDir = -sortDir;
+    else { sortKey = th.dataset.key; sortDir = th.classList.contains("num") ? -1 : 1; }
+    render();
+  });
+
+  $("search").addEventListener("input", render);
+  $("only-matched").addEventListener("change", render);
+
+  function fileStatus(id, msg, cls) {
+    const el = $(id);
+    el.textContent = msg;
+    el.className = "file-status" + (cls ? " " + cls : "");
+  }
+
+  $("dk-file").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      parseDk(await file.text());
+      fileStatus("dk-status", file.name + " — " + dk.length + " players.", "ok");
+      render();
+    } catch (err) {
+      fileStatus("dk-status", file.name + ": " + err.message, "error");
+    }
+    e.target.value = "";
+  });
+
+  async function savantUpload(e, kind, statusId) {
+    const files = [...e.target.files];
+    if (!files.length) return;
+    savant[kind].clear();
+    let rows = 0;
+    try {
+      for (const f of files) rows += parseSavant(await f.text(), kind);
+      fileStatus(statusId, files.map(f => f.name).join(", ") + " — " + rows + " rows, " + savant[kind].size + " players.", "ok");
+      render();
+    } catch (err) {
+      fileStatus(statusId, err.message, "error");
+    }
+    e.target.value = "";
+  }
+  $("bat-file").addEventListener("change", (e) => savantUpload(e, "bat", "bat-status"));
+  $("pit-file").addEventListener("change", (e) => savantUpload(e, "pit", "pit-status"));
+</script>
