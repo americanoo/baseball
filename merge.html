@@ -54,7 +54,7 @@
     font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   main {
-    max-width: 1200px;
+    max-width: none;
     margin: 0 auto;
     padding: 28px 20px 60px;
     display: flex;
@@ -127,7 +127,7 @@
   .legend svg { flex: none; }
   .table-wrap { overflow-x: auto; max-height: 620px; overflow-y: auto; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-  th, td { text-align: left; padding: 7px 11px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th, td { text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th {
     font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
     color: var(--ink-soft); position: sticky; top: 0; background: var(--surface);
@@ -466,7 +466,7 @@
   }
 
   // ---------- EV strip ----------
-  const STRIP_W = 150, STRIP_H = 18;
+  const STRIP_W = 138, STRIP_H = 18;
 
   function evStrip(list, lo, hi) {
     const span = hi - lo || 1;
