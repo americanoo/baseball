@@ -100,6 +100,12 @@
     border: 1px solid transparent;
   }
   .primary-btn:hover { filter: brightness(1.08); }
+  .open-btn {
+    font: inherit; font-weight: 600; border-radius: 7px; padding: 5px 14px;
+    cursor: pointer; background: var(--surface-2); color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .open-btn:hover { border-color: var(--ink-soft); }
   .file-status { font-size: 0.82rem; color: var(--ink-soft); }
   .file-status.ok { color: var(--ok); font-weight: 600; }
   .file-status.error { color: var(--accent); font-weight: 600; }
@@ -198,6 +204,11 @@
         <input type="file" id="pit-file" accept=".csv,.txt" multiple hidden>
         <span class="file-status" id="pit-status">Nothing uploaded.</span>
       </div>
+    </div>
+    <div class="head-row" style="margin-top:12px; margin-bottom:0">
+      <span class="status" id="save-status">Uploads are saved in this browser and restored after a refresh.</span>
+      <span class="spacer"></span>
+      <button type="button" class="open-btn" id="clear-saved">Clear saved data</button>
     </div>
   </section>
 
@@ -654,6 +665,47 @@
     el.className = "file-status" + (cls ? " " + cls : "");
   }
 
+  // ---------- persistence ----------
+  const STORE_KEY = "merge-state-v1";
+
+  function saveState() {
+    try {
+      const ser = (s) => s && { mode: s.mode, cols: s.cols, lo: s.lo, hi: s.hi, map: [...s.map] };
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        dk,
+        bat: ser(savant.bat),
+        pit: ser(savant.pit),
+        status: { dk: $("dk-status").textContent, bat: $("bat-status").textContent, pit: $("pit-status").textContent },
+      }));
+      $("save-status").textContent = "Saved in this browser — the tables come back after a refresh.";
+    } catch (e) {
+      $("save-status").textContent = "Couldn't save for next time (data too large for browser storage) — tables still work until refresh.";
+    }
+  }
+
+  function loadState() {
+    let raw = null;
+    try { raw = localStorage.getItem(STORE_KEY); } catch (e) { return false; }
+    if (!raw) return false;
+    try {
+      const st = JSON.parse(raw);
+      const de = (o) => o && { mode: o.mode, cols: o.cols, lo: o.lo, hi: o.hi, map: new Map(o.map) };
+      dk = st.dk || [];
+      savant.bat = de(st.bat);
+      savant.pit = de(st.pit);
+      for (const k of ["dk", "bat", "pit"]) {
+        const s = st.status && st.status[k];
+        if (s && s !== "Nothing uploaded.") fileStatus(k + "-status", s + " (restored)", "ok");
+      }
+      return dk.length > 0;
+    } catch (e) { return false; }
+  }
+
+  $("clear-saved").addEventListener("click", () => {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    location.reload();
+  });
+
   $("dk-file").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -661,6 +713,7 @@
       parseDk(await file.text());
       fileStatus("dk-status", file.name + " — " + dk.length + " players.", "ok");
       renderAll();
+      saveState();
     } catch (err) {
       fileStatus("dk-status", file.name + ": " + err.message, "error");
     }
@@ -680,6 +733,7 @@
       fileStatus(statusId, files.map(f => f.name).join(", ") + " — " +
         (store.mode === "agg" ? store.map.size + " players (grouped stats)." : rows + " events, " + store.map.size + " players."), "ok");
       render(kind);
+      saveState();
     } catch (err) {
       fileStatus(statusId, err.message, "error");
     }
@@ -687,4 +741,6 @@
   }
   $("bat-file").addEventListener("change", (e) => savantUpload(e, "bat", "bat-status"));
   $("pit-file").addEventListener("change", (e) => savantUpload(e, "pit", "pit-status"));
+
+  if (loadState()) renderAll();
 </script>

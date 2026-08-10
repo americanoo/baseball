@@ -179,6 +179,7 @@
       <input type="file" id="pool-file" accept=".csv,.json,.txt" hidden>
       <span class="status" id="pool-status">The full bulk-entry template works as-is — the
         player table is found automatically. Draftables JSON files work too.</span>
+      <button type="button" class="open-btn" id="clear-saved">Clear saved data</button>
     </div>
     <details class="fallback">
       <summary>No file? Paste the data instead</summary>
@@ -393,12 +394,46 @@
   $("pos-select").addEventListener("change", renderPool);
   $("game-select").addEventListener("change", renderPool);
 
+  // ---------- persistence ----------
+  const STORE_KEY = "build-state-v1";
+
+  function saveState(statusMsg) {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ players, status: statusMsg }));
+    } catch (e) {
+      setStatus(statusMsg + " (Too large to keep for next visit — table still works until refresh.)");
+    }
+  }
+
+  function loadState() {
+    let raw = null;
+    try { raw = localStorage.getItem(STORE_KEY); } catch (e) { return false; }
+    if (!raw) return false;
+    try {
+      const st = JSON.parse(raw);
+      if (!Array.isArray(st.players) || !st.players.length) return false;
+      players = st.players;
+      buildFilters();
+      $("search").disabled = false;
+      renderPool();
+      if (st.status) setStatus(st.status + " (restored — saved in this browser)");
+      return true;
+    } catch (e) { return false; }
+  }
+
+  $("clear-saved").addEventListener("click", () => {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    location.reload();
+  });
+
   $("pool-file").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     try {
       parsePool(await file.text());
-      setStatus(file.name + " — " + players.length + " players loaded.");
+      const msg = file.name + " — " + players.length + " players loaded.";
+      setStatus(msg);
+      saveState(msg);
     } catch (err) {
       setStatus(file.name + ": " + err.message, true);
     }
@@ -408,9 +443,13 @@
   $("pool-parse-btn").addEventListener("click", () => {
     try {
       parsePool($("pool-in").value);
-      setStatus("Pasted data — " + players.length + " players loaded.");
+      const msg = "Pasted data — " + players.length + " players loaded.";
+      setStatus(msg);
+      saveState(msg);
     } catch (e) {
       setStatus(e.message, true);
     }
   });
+
+  loadState();
 </script>
