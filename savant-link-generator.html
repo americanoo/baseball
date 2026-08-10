@@ -121,11 +121,34 @@
   .teams-head {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   .teams-head .count { color: var(--ink-soft); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
   .teams-head .spacer { flex: 1; }
+  .seg {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface-2);
+  }
+  .seg button {
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: transparent;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
   .ghost-btn {
     font: inherit;
     font-size: 0.82rem;
@@ -264,11 +287,14 @@
   <fieldset>
     <legend>Teams</legend>
     <div class="teams-head">
-      <span class="count"><b id="team-count">20</b> of 30 selected</span>
-      <span class="spacer"></span>
-      <button type="button" class="ghost-btn" id="teams-all">All</button>
-      <button type="button" class="ghost-btn" id="teams-none">None</button>
+      <div class="seg" role="group" aria-label="Team selection mode">
+        <button type="button" id="teams-all" aria-pressed="false">All teams</button>
+        <button type="button" id="teams-none" aria-pressed="false">No teams</button>
+        <button type="button" id="teams-custom" aria-pressed="true">Custom</button>
+      </div>
       <button type="button" class="ghost-btn" id="teams-template">Template 20</button>
+      <span class="spacer"></span>
+      <span class="count"><b id="team-count">20</b> of 30 selected</span>
     </div>
     <div class="divisions" id="divisions"></div>
   </fieldset>
@@ -379,6 +405,8 @@
 
     const checked = teamBoxes().filter(b => b.checked).map(b => b.value);
     $("team-count").textContent = checked.length;
+    updateTeamMode(checked.length);
+    // Savant treats a missing hfTeam as "no team filter", so all-30 and none both omit it.
     if (checked.length > 0 && checked.length < 30) add("hfTeam", checked.join("|") + "|");
 
     if ($("no-bunts").checked) add("hfFlag", "is\\.\\.bunt\\.\\.not|");
@@ -412,12 +440,24 @@
   document.querySelector("main").addEventListener("input", refresh);
   divisionsEl.addEventListener("change", refresh);
 
+  // Remember the last hand-picked set so "Custom" can restore it after All/None.
+  let lastCustom = [...TEMPLATE_TEAMS];
+
+  function updateTeamMode(count) {
+    if (count > 0 && count < 30) lastCustom = teamBoxes().filter(b => b.checked).map(b => Number(b.value));
+    const mode = count === 30 ? "teams-all" : count === 0 ? "teams-none" : "teams-custom";
+    for (const id of ["teams-all", "teams-none", "teams-custom"]) {
+      $(id).setAttribute("aria-pressed", String(id === mode));
+    }
+  }
+
   function setTeams(pick) {
     teamBoxes().forEach(b => { b.checked = pick(Number(b.value)); });
     refresh();
   }
   $("teams-all").addEventListener("click", () => setTeams(() => true));
   $("teams-none").addEventListener("click", () => setTeams(() => false));
+  $("teams-custom").addEventListener("click", () => setTeams(id => lastCustom.includes(id)));
   $("teams-template").addEventListener("click", () => setTeams(id => TEMPLATE_TEAMS.includes(id)));
 
   $("copy-btn").addEventListener("click", async () => {
