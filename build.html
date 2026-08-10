@@ -92,7 +92,6 @@
   }
   .primary-btn { background: var(--accent); color: var(--accent-ink); border: 1px solid transparent; }
   .primary-btn:hover { filter: brightness(1.08); }
-  .primary-btn:disabled { opacity: 0.5; cursor: default; }
   .open-btn { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
   .open-btn:hover { border-color: var(--ink-soft); }
   textarea {
@@ -127,7 +126,7 @@
   .head-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
   .head-row label { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--ink-soft); font-weight: 600; }
   .head-row .spacer { flex: 1; }
-  .table-wrap { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+  .table-wrap { overflow-x: auto; max-height: 620px; overflow-y: auto; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th {
@@ -145,8 +144,6 @@
   th .arrow { color: var(--accent); }
   th.num, td.num { text-align: right; }
   tr:last-child td { border-bottom: none; }
-  td .open-btn { padding: 3px 12px; font-size: 0.84rem; }
-  tr.active td { background: var(--surface-2); }
   .muted { color: var(--ink-soft); }
   .empty { color: var(--ink-soft); padding: 6px 2px; margin: 0; }
 </style>
@@ -158,65 +155,32 @@
   </nav>
 
   <header>
-    <h1>DraftKings MLB player pools</h1>
-    <p>Pick a slate for the day and get its full player pool as a sortable table —
+    <h1>DraftKings MLB player pool</h1>
+    <p>Upload the DKSalaries CSV from any DraftKings contest (Export to CSV in the
+       lineup builder) and the slate's full player pool loads as a sortable table —
        name, position, salary, team, game, and average fantasy points.</p>
   </header>
 
   <section>
-    <h2>Step 1 · Slates</h2>
+    <h2>Player pool</h2>
     <div class="btn-row">
-      <button type="button" class="primary-btn" id="auto-btn">Auto-load slates</button>
-      <span class="status" id="load-status">Loads the day's MLB slates from DraftKings' lobby feed.</span>
-    </div>
-    <details class="fallback" id="slate-fallback">
-      <summary>Auto-load blocked? Paste the feed instead</summary>
-      <div class="inner">
-        <p><a class="open-btn" href="https://www.draftkings.com/lobby/getcontests?sport=MLB" target="_blank" rel="noopener">Open DK slate feed</a>
-           then select all (<b>Ctrl/Cmd&nbsp;A</b>), copy, paste below.</p>
-        <textarea id="json-in" placeholder='Paste the feed JSON here…'></textarea>
-        <div class="btn-row">
-          <button type="button" class="primary-btn" id="parse-btn">Parse pasted JSON</button>
-          <label class="open-btn" for="json-file">Upload saved feed JSON</label>
-          <input type="file" id="json-file" accept=".json,.txt" hidden>
-        </div>
-      </div>
-    </details>
-    <div class="head-row" style="margin-top:12px">
-      <label>Day <select id="day-select" disabled><option>Load slates first</option></select></label>
-      <span class="spacer"></span>
-      <span class="status" id="slate-count"></span>
-    </div>
-    <div class="table-wrap">
-      <table id="slate-table" hidden>
-        <thead><tr><th>Start (ET)</th><th>Slate</th><th>Type</th><th>Games</th><th></th></tr></thead>
-        <tbody id="slate-body"></tbody>
-      </table>
-    </div>
-    <p class="empty" id="slate-empty">No slates loaded yet.</p>
-  </section>
-
-  <section>
-    <h2>Step 2 · Player pool</h2>
-    <div class="btn-row">
-      <label class="open-btn" for="pool-file">Upload CSV / JSON</label>
+      <label class="primary-btn" for="pool-file">Upload DKSalaries CSV</label>
       <input type="file" id="pool-file" accept=".csv,.json,.txt" hidden>
-      <span class="status" id="pool-status">Pick a slate above, or upload a DraftKings CSV
-        (the DKSalaries.csv from any contest's Export to CSV) — no slate list needed.</span>
+      <span class="status" id="pool-status">The full bulk-entry template works as-is — the
+        player table is found automatically. Draftables JSON files work too.</span>
     </div>
-    <details class="fallback" id="pool-fallback" hidden>
-      <summary>Auto-load blocked? Paste the player data instead</summary>
+    <details class="fallback">
+      <summary>No file? Paste the data instead</summary>
       <div class="inner">
-        <p><a class="open-btn" id="open-draftables" href="#" target="_blank" rel="noopener">Open players JSON</a>
-           <a class="open-btn" id="open-csv" href="#" target="_blank" rel="noopener">Open players CSV</a>
-           — open either, copy everything, paste below.</p>
-        <textarea id="pool-in" placeholder="Paste the draftables JSON or the CSV text here…"></textarea>
+        <p>Paste the CSV text or a draftables JSON blob below.</p>
+        <textarea id="pool-in" placeholder="Paste CSV or JSON here…"></textarea>
         <div class="btn-row"><button type="button" class="primary-btn" id="pool-parse-btn">Parse pasted data</button></div>
       </div>
     </details>
     <div class="head-row" style="margin-top:12px">
       <input type="search" id="search" placeholder="Search player or team…" disabled>
       <label>Position <select id="pos-select" disabled><option value="">All</option></select></label>
+      <label>Game <select id="game-select" disabled><option value="">All</option></select></label>
       <span class="spacer"></span>
       <span class="status" id="pool-count"></span>
     </div>
@@ -229,6 +193,7 @@
           <th data-key="salary" class="num">Salary</th>
           <th data-key="team">Team</th>
           <th data-key="game">Game</th>
+          <th data-key="start">Start (ET)</th>
           <th data-key="fppg" class="num">FPPG</th>
         </tr></thead>
         <tbody id="pool-body"></tbody>
@@ -240,170 +205,15 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
-  const CONTEST_TYPES = { 10: "Classic", 96: "Showdown", 70: "Tiers", 145: "Best Ball" };
 
-  const lobbyUrl = "https://www.draftkings.com/lobby/getcontests?sport=MLB";
-  const draftablesUrl = (g) => "https://api.draftkings.com/draftgroups/v1/draftgroups/" + g.id + "/draftables?format=json";
-  const csvUrl = (g) => "https://www.draftkings.com/lineup/getavailableplayerscsv?contestTypeId=" + g.contestType + "&draftGroupId=" + g.id;
-
-  // DraftKings sends no CORS headers, so a direct browser fetch usually fails.
-  // Fall back through public CORS relays; if everything is blocked (e.g. the
-  // artifact sandbox forbids all external requests), the paste route remains.
-  async function fetchText(url) {
-    const attempts = [
-      url,
-      "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
-      "https://corsproxy.io/?url=" + encodeURIComponent(url),
-    ];
-    let lastErr = null;
-    for (const u of attempts) {
-      try {
-        const res = await fetch(u);
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return await res.text();
-      } catch (e) { lastErr = e; }
-    }
-    throw lastErr || new Error("all fetch routes failed");
-  }
-
-  // ---------- Step 1: slates ----------
-  let groups = [];
-  let current = null;
-
-  function parseFeed(data) {
-    const raw = data.DraftGroups || [];
-    const seen = new Set();
-    groups = [];
-    for (const g of raw) {
-      const id = g.DraftGroupId;
-      if (!id || seen.has(id)) continue;
-      seen.add(id);
-      const start = String(g.StartDateEst || g.StartDate || "");
-      groups.push({
-        id,
-        contestType: g.ContestTypeId,
-        date: start.slice(0, 10),
-        time: start.slice(11, 16),
-        suffix: (g.ContestStartTimeSuffix || "").replace(/[()]/g, "").trim(),
-        games: g.GameCount,
-        tag: g.DraftGroupTag || "",
-      });
-    }
-    groups.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time) || (b.games || 0) - (a.games || 0));
-    if (!groups.length) throw new Error("No DraftGroups found in that JSON — make sure you copied the whole page.");
-    buildDaySelect();
-    renderSlates();
-  }
-
-  function buildDaySelect() {
-    const days = [...new Set(groups.map(g => g.date).filter(Boolean))].sort();
-    const sel = $("day-select");
-    sel.innerHTML = "";
-    // "Today" in DraftKings terms is US Eastern time.
-    const todayEt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
-    for (const d of days) {
-      const opt = document.createElement("option");
-      opt.value = d;
-      opt.textContent = d === todayEt ? d + " (today)" : d;
-      sel.appendChild(opt);
-    }
-    sel.disabled = false;
-    sel.value = days.includes(todayEt) ? todayEt : days[0];
-  }
-
-  function fmtTime(t) {
-    if (!/^\d\d:\d\d$/.test(t)) return t || "—";
-    let [h, m] = t.split(":").map(Number);
-    const ampm = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12;
-    return h + ":" + String(m).padStart(2, "0") + " " + ampm;
-  }
-
-  function shownSlates() { return groups.filter(g => g.date === $("day-select").value); }
-
-  function renderSlates() {
-    const rows = shownSlates();
-    const body = $("slate-body");
-    body.innerHTML = "";
-    for (const g of rows) {
-      const tr = document.createElement("tr");
-      if (current && current.id === g.id) tr.className = "active";
-      const label = g.suffix || g.tag || (g.games === 1 ? "Single game" : "Slate");
-      tr.innerHTML =
-        "<td>" + fmtTime(g.time) + "</td>" +
-        "<td>" + label + " <span class='muted'>#" + g.id + "</span></td>" +
-        "<td>" + (CONTEST_TYPES[g.contestType] || "Type " + g.contestType) + "</td>" +
-        "<td>" + (g.games ?? "—") + "</td>" +
-        "<td><button type='button' class='open-btn'>View players</button></td>";
-      tr.querySelector("button").addEventListener("click", () => selectSlate(g));
-      body.appendChild(tr);
-    }
-    $("slate-table").hidden = rows.length === 0;
-    $("slate-empty").hidden = rows.length > 0;
-    $("slate-empty").textContent = "No slates for this day.";
-    $("slate-count").textContent = rows.length ? rows.length + " slate" + (rows.length === 1 ? "" : "s") : "";
-  }
-
-  function setStatus(id, msg, isError) {
-    const el = $(id);
-    el.textContent = msg;
-    el.classList.toggle("error", !!isError);
-  }
-
-  $("auto-btn").addEventListener("click", async () => {
-    setStatus("load-status", "Fetching slate feed…");
-    try {
-      parseFeed(JSON.parse(await fetchText(lobbyUrl)));
-      setStatus("load-status", "Loaded " + groups.length + " MLB draft groups.");
-      $("slate-fallback").open = false;
-    } catch (e) {
-      setStatus("load-status", "Auto-load blocked here (" + e.message + ") — use the paste route below. (If you're viewing this as a Claude artifact, outside requests are always blocked; the saved local copy of this page can auto-load.)", true);
-      $("slate-fallback").open = true;
-    }
-  });
-
-  $("parse-btn").addEventListener("click", () => {
-    try {
-      parseFeed(JSON.parse($("json-in").value));
-      setStatus("load-status", "Loaded " + groups.length + " MLB draft groups from pasted JSON.");
-      $("slate-fallback").open = false;
-    } catch (e) {
-      setStatus("load-status", e.message, true);
-    }
-  });
-
-  $("day-select").addEventListener("change", renderSlates);
-
-  // ---------- Step 2: player pool ----------
   let players = [];
   let sortKey = "salary", sortDir = -1;
-
-  function slateLabel(g) {
-    return (g.suffix || g.tag || "Slate") + " #" + g.id + " (" + (CONTEST_TYPES[g.contestType] || "Type " + g.contestType) + ")";
-  }
-
-  async function selectSlate(g) {
-    current = g;
-    renderSlates();
-    $("open-draftables").href = draftablesUrl(g);
-    $("open-csv").href = csvUrl(g);
-    $("pool-fallback").hidden = false;
-    setStatus("pool-status", "Loading players for " + slateLabel(g) + "…");
-    try {
-      parsePool(await fetchText(draftablesUrl(g)));
-      setStatus("pool-status", slateLabel(g) + " — loaded.");
-      $("pool-fallback").open = false;
-    } catch (e) {
-      setStatus("pool-status", "Auto-load blocked for " + slateLabel(g) + " (" + e.message + ") — open the JSON or CSV below, copy it all, and paste.", true);
-      $("pool-fallback").open = true;
-    }
-  }
 
   function parsePool(text) {
     const t = text.trim();
     players = t.startsWith("{") || t.startsWith("[") ? fromDraftables(JSON.parse(t)) : fromCsv(t);
-    if (!players.length) throw new Error("No players found in that data.");
-    buildPosSelect();
+    if (!players.length) throw new Error("No players found — expected a DKSalaries CSV or draftables JSON.");
+    buildFilters();
     $("search").disabled = false;
     $("search").value = "";
     renderPool();
@@ -417,13 +227,16 @@
       if (seen.has(d.draftableId)) continue;
       seen.add(d.draftableId);
       const fppgAttr = (d.draftStatAttributes || []).find(a => a.id === 90);
+      const start = String((d.competition && d.competition.startTime) || "");
       out.push({
         name: d.displayName || ((d.firstName || "") + " " + (d.lastName || "")).trim(),
+        id: d.playerId || "",
         pos: d.position || "",
         roster: "",
         salary: Number(d.salary) || 0,
         team: d.teamAbbreviation || "",
         game: (d.competition && d.competition.name) || "",
+        start: start.slice(11, 16),
         fppg: fppgAttr ? Number(fppgAttr.value) || 0 : null,
       });
     }
@@ -435,7 +248,7 @@
     // Minimal CSV parser: handles quoted fields and commas inside quotes.
     let field = "", row = [], inQ = false;
     const pushF = () => { row.push(field); field = ""; };
-    const pushR = () => { if (row.length > 1 || row[0] !== "") rows.push(row); row = []; };
+    const pushR = () => { if (row.some(c => c.trim() !== "")) rows.push(row); row = []; };
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
       if (inQ) {
@@ -447,45 +260,72 @@
       else field += c;
     }
     if (field !== "" || row.length) { pushF(); pushR(); }
-    if (rows.length < 2) return [];
-    const head = rows[0].map(h => h.trim().toLowerCase());
+
+    // DK's bulk-entry template pads the player table to the right of the roster
+    // grid and puts instructions above it, so locate the header row anywhere.
+    const hIdx = rows.findIndex(r => {
+      const low = r.map(c => c.trim().toLowerCase());
+      return low.includes("name") && low.includes("salary");
+    });
+    if (hIdx < 0) return [];
+    const head = rows[hIdx].map(h => h.trim().toLowerCase());
     const col = (n) => head.indexOf(n);
-    const iName = col("name"), iPos = col("position"), iRoster = col("roster position"),
-          iSal = col("salary"), iGame = col("game info"), iTeam = col("teamabbrev"),
-          iFppg = col("avgpointspergame");
-    return rows.slice(1).filter(r => r[iName]).map(r => ({
-      name: r[iName] || "",
-      pos: iPos >= 0 ? r[iPos] : "",
-      roster: iRoster >= 0 ? r[iRoster] : "",
-      salary: iSal >= 0 ? Number(r[iSal]) || 0 : 0,
-      team: iTeam >= 0 ? r[iTeam] : "",
-      game: iGame >= 0 ? (r[iGame] || "").split(" ")[0] : "",
-      fppg: iFppg >= 0 ? Number(r[iFppg]) || 0 : null,
-    }));
+    const iName = col("name"), iId = col("id"), iPos = col("position"),
+          iRoster = col("roster position"), iSal = col("salary"), iGame = col("game info"),
+          iTeam = col("teamabbrev"), iFppg = col("avgpointspergame");
+
+    return rows.slice(hIdx + 1).filter(r => (r[iName] || "").trim()).map(r => {
+      // Game Info looks like "MIL@SD 08/10/2026 09:40PM ET".
+      const info = ((iGame >= 0 && r[iGame]) || "").split(" ");
+      return {
+        name: r[iName].trim(),
+        id: iId >= 0 ? (r[iId] || "").trim() : "",
+        pos: iPos >= 0 ? (r[iPos] || "").trim() : "",
+        roster: iRoster >= 0 ? (r[iRoster] || "").trim() : "",
+        salary: iSal >= 0 ? Number(r[iSal]) || 0 : 0,
+        team: iTeam >= 0 ? (r[iTeam] || "").trim() : "",
+        game: info[0] || "",
+        start: info.slice(2).join(" ").replace(" ET", ""),
+        fppg: iFppg >= 0 ? Number(r[iFppg]) || 0 : null,
+      };
+    });
   }
 
-  function buildPosSelect() {
-    const sel = $("pos-select");
+  function buildFilters() {
+    const posSel = $("pos-select");
     const positions = [...new Set(players.map(p => p.pos).filter(Boolean))].sort();
-    sel.innerHTML = "<option value=''>All</option>";
+    posSel.innerHTML = "<option value=''>All</option>";
     for (const p of positions) {
       const opt = document.createElement("option");
       opt.value = p;
       opt.textContent = p;
-      sel.appendChild(opt);
+      posSel.appendChild(opt);
     }
-    sel.disabled = false;
-    sel.value = "";
+    posSel.disabled = false;
+    posSel.value = "";
+
+    const gameSel = $("game-select");
+    const games = [...new Set(players.map(p => p.game).filter(Boolean))].sort();
+    gameSel.innerHTML = "<option value=''>All</option>";
+    for (const g of games) {
+      const opt = document.createElement("option");
+      opt.value = g;
+      opt.textContent = g;
+      gameSel.appendChild(opt);
+    }
+    gameSel.disabled = false;
+    gameSel.value = "";
   }
 
   function shownPlayers() {
     const q = $("search").value.trim().toLowerCase();
     const pos = $("pos-select").value;
+    const game = $("game-select").value;
     let rows = players;
     if (pos) rows = rows.filter(p => p.pos === pos);
+    if (game) rows = rows.filter(p => p.game === game);
     if (q) rows = rows.filter(p => (p.name + " " + p.team).toLowerCase().includes(q));
-    const dir = sortDir;
-    const key = sortKey;
+    const dir = sortDir, key = sortKey;
     return [...rows].sort((a, b) => {
       const av = a[key], bv = b[key];
       if (typeof av === "number" || typeof bv === "number") return dir * ((av ?? -Infinity) - (bv ?? -Infinity));
@@ -508,15 +348,14 @@
         "<td class='num'>$" + fmtSalary.format(p.salary) + "</td>" +
         "<td>" + p.team + "</td>" +
         "<td class='muted'>" + p.game + "</td>" +
+        "<td class='muted'>" + (p.start || "—") + "</td>" +
         "<td class='num'>" + (p.fppg == null ? "—" : p.fppg.toFixed(2)) + "</td>";
       body.appendChild(tr);
     }
     $("pool-table").hidden = rows.length === 0;
     $("pool-empty").hidden = rows.length > 0;
     $("pool-empty").textContent = players.length ? "No players match the filters." : "No player pool loaded yet.";
-    $("pool-count").textContent = players.length
-      ? rows.length + " of " + players.length + " players"
-      : "";
+    $("pool-count").textContent = players.length ? rows.length + " of " + players.length + " players" : "";
     for (const th of document.querySelectorAll("#pool-table th")) {
       const base = th.textContent.replace(/ [▲▼]$/, "");
       th.innerHTML = th.dataset.key === sortKey
@@ -533,41 +372,34 @@
     renderPool();
   });
 
+  function setStatus(msg, isError) {
+    const el = $("pool-status");
+    el.textContent = msg;
+    el.classList.toggle("error", !!isError);
+  }
+
   $("search").addEventListener("input", renderPool);
   $("pos-select").addEventListener("change", renderPool);
+  $("game-select").addEventListener("change", renderPool);
 
   $("pool-file").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     try {
       parsePool(await file.text());
-      setStatus("pool-status", file.name + " — " + players.length + " players loaded.");
-      $("pool-fallback").open = false;
+      setStatus(file.name + " — " + players.length + " players loaded.");
     } catch (err) {
-      setStatus("pool-status", file.name + ": " + err.message, true);
+      setStatus(file.name + ": " + err.message, true);
     }
     e.target.value = "";
   });
 
-  $("json-file").addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      parseFeed(JSON.parse(await file.text()));
-      setStatus("load-status", file.name + " — loaded " + groups.length + " MLB draft groups.");
-      $("slate-fallback").open = false;
-    } catch (err) {
-      setStatus("load-status", file.name + ": " + err.message, true);
-    }
-    e.target.value = "";
-  });
   $("pool-parse-btn").addEventListener("click", () => {
     try {
       parsePool($("pool-in").value);
-      setStatus("pool-status", (current ? slateLabel(current) : "Pasted pool") + " — loaded.");
-      $("pool-fallback").open = false;
+      setStatus("Pasted data — " + players.length + " players loaded.");
     } catch (e) {
-      setStatus("pool-status", e.message, true);
+      setStatus(e.message, true);
     }
   });
 </script>
