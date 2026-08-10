@@ -132,7 +132,9 @@
     color: var(--ink-soft); position: sticky; top: 0; background: var(--surface);
     cursor: pointer; user-select: none;
   }
+  th:hover { color: var(--accent); text-decoration: underline; }
   th .arrow { color: var(--accent); }
+  .sort-hint { font-size: 0.8rem; color: var(--ink-soft); margin: 8px 0 0; }
   th.num, td.num { text-align: right; }
   tr:last-child td { border-bottom: none; }
   .muted { color: var(--ink-soft); }
@@ -212,6 +214,7 @@
       </table>
     </div>
     <p class="empty" id="pool-empty">Upload the DK salaries CSV to start — Savant CSVs enrich it.</p>
+    <p class="sort-hint">Click any column header to sort; click again to reverse. The ▼/▲ arrow marks the active sort.</p>
   </section>
 </main>
 
